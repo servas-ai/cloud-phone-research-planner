@@ -1,0 +1,85 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint markdown (forgiving config)
+        uses: DavidAnson/markdownlint-cli2-action@v17
+        with:
+          globs: |
+            **/*.md
+            !**/code-quality-skills/**
+            !**/audit-reports/**
+            !**/node_modules/**
+        continue-on-error: true
+
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check internal markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: yes
+          config-file: .github/mlc-config.json
+        continue-on-error: true
+
+  yaml-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install yamllint + jsonschema
+        run: pip install yamllint jsonschema pyyaml
+      - name: Lint YAML files
+        run: yamllint -d '{extends: relaxed, rules: {line-length: disable}}' probes/ stack/ .github/ || true
+      - name: Validate probe inventory structure
+        run: |
+          python - <<'EOF'
+          import yaml, sys
+          from pathlib import Path
+          inv = yaml.safe_load(Path("probes/inventory.yml").read_text())
+          assert "probes" in inv, "missing probes key"
+          probes = inv["probes"]
+          ranks = [p["rank"] for p in probes]
+          assert len(ranks) == len(set(ranks)), f"duplicate ranks: {[r for r in ranks if ranks.count(r) > 1]}"
+          for p in probes:
+              for k in ("rank", "id", "category", "severity", "android_layer", "description", "mitigation_layer"):
+                  assert k in p, f"probe missing {k}: {p}"
+          print(f"OK: {len(probes)} probes, ranks {min(ranks)}-{max(ranks)}, all keys present")
+          EOF
+
+  scope-lock-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify no live-platform scope creep
+        run: |
+          set -e
+          # These platforms are explicit out-of-scope per docs/ethics-and-scope.md
+          # Catch accidental references to live-platform integration code.
+          violations=0
+          for term in "tiktok\.com" "instagram\.com/api" "graph\.facebook\.com" "snapchat\.com/api"; do
+            hits=$(grep -rEi --include="*.md" --include="*.py" --include="*.kt" --include="*.yml" \
+              --exclude-dir=node_modules --exclude-dir=code-quality-skills --exclude-dir=audit-reports \
+              --exclude-dir=.git --exclude-dir=docs/research-notes \
+              -- "$term" . 2>/dev/null | grep -v "out of scope\|out-of-scope\|explicitly" || true)
+            if [ -n "$hits" ]; then
+              echo "::error::Scope-Lock violation: found '$term' references that don't say out-of-scope:"
+              echo "$hits"
+              violations=$((violations + 1))
+            fi
+          done
+          [ "$violations" -eq 0 ] && echo "Scope-Lock OK"
+          exit "$violations"

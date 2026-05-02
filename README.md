@@ -11,6 +11,10 @@
   <a href="#"><img alt="Scope" src="https://img.shields.io/badge/scope-detection__research_only-lightgrey"></a>
   <a href="AGENTS.md"><img alt="AI Agents" src="https://img.shields.io/badge/🤖_AI_agents-read_AGENTS.md_first-purple"></a>
   <a href=".claude/skills/cloud-phone-research/SKILL.md"><img alt="Skill" src="https://img.shields.io/badge/skill-cloud--phone--research-9333ea"></a>
+  <a href="https://github.com/servas-ai/cloud-phone-research-planner/issues?q=is%3Aissue+is%3Aopen+label%3Afinding"><img alt="Open findings" src="https://img.shields.io/github/issues/servas-ai/cloud-phone-research-planner/finding?label=open%20findings"></a>
+  <a href="https://github.com/servas-ai/cloud-phone-research-planner/issues?q=is%3Aissue+label%3Alegal-gate"><img alt="Legal-gate" src="https://img.shields.io/github/issues/servas-ai/cloud-phone-research-planner/legal-gate?color=red&label=legal-gate"></a>
+  <a href="LICENSE"><img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
+  <a href="CITATION.cff"><img alt="Citable" src="https://img.shields.io/badge/citable-CITATION.cff-orange"></a>
 </p>
 
 > **🤖 AI Agents** — entering this repo? Read [`AGENTS.md`](AGENTS.md) **first**. Then activate the project skill at [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md). Three ready-to-paste prompts in [`prompts/`](prompts/): extend a finding, propose a probe, run a fresh validation round.
@@ -33,6 +37,35 @@
 9. [Validation Pipeline](#-validation-pipeline)
 10. [Reproducibility-Strategie](#-reproducibility-strategie)
 11. [Lizenz & Ethik](#-lizenz--ethik)
+
+---
+
+## ⚡ Quickstart (für menschliche Mitwirkende)
+
+```bash
+git clone https://github.com/servas-ai/cloud-phone-research-planner.git
+cd cloud-phone-research-planner
+
+# 1. Lies die drei Eintritts-Dokumente
+$EDITOR README.md AGENTS.md plans/05-validation-feedback.md
+
+# 2. Wähle ein offenes Finding (siehe GitHub Issues mit Label `finding`)
+gh issue list --label finding --state open
+
+# 3. Drafte ein Addendum (NIEMALS plans/00-04 editieren)
+cp prompts/01-extend-finding.md /tmp/my-prompt.md
+# Setze FINDING_ID + Reviewer-Panel im "Configuration"-Block der Datei
+
+# 4. Multi-Reviewer-Validation laufen lassen (verifizierter Befehl)
+GEMINI_CLI_TRUST_WORKSPACE=true gemini -p "$(cat /tmp/my-prompt.md)" \
+  --skip-trust --approval-mode plan -m gemini-3-pro-preview
+
+# 5. Auf menschliche Y/N warten, dann commiten + pushen
+just lint        # validiert markdown + yaml + probe-schema
+just status      # planner-spezifischer git status
+```
+
+Für **AI-Agents** statt menschlicher Mitwirkender: siehe [`AGENTS.md`](AGENTS.md) zuerst, dann [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md).
 
 ---
 
