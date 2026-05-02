@@ -27,3 +27,4 @@ dist/
 .env
 .env.local
 secrets.yml
+audit-reports/
