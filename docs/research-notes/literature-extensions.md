@@ -10,7 +10,7 @@ Plan-Immutability: this file does NOT modify `refs/bibliography.md`. A human-app
 
 This note catalogues additional academic references (2022–2026) and active OSS projects that should inform the SpoofStack/DetectorLab paper or be used as detection-baselines. The current `refs/bibliography.md` is heavily industry-blog weighted (Cryptomathic, Multilogin, VMOS) and has only three OSS detection baselines. Findings F4/F5 explicitly demand TLS-JA4, p0f-stack, GL_EXTENSIONS, kallsyms-readability, thermal-zones, cacerts-diff, VBMeta-hash-chain, Widevine-L1/L3, Camera2, audio-codec, syscall-latency, app-uptime-variance, boot-entropy and binder-cost coverage — most of which have published reference implementations and adjacent academic literature.
 
-Verification: spot-checked 8 URLs through `web-reader`/WebFetch (FoxIO/ja4, Cisco/mercury, GrapheneOS/Auditor, KeyDive, CamoDroid, reveny/Android-Emulator-Detection, trustdevice-android, the four arXiv abstracts). All return HTTP 200 with the documented metadata. No paywalled-only links included; ResearchGate-only entries that would otherwise be paywalled are omitted in favour of arXiv/IEEE preprints.
+Verification: spot-checked 8 URLs through `web-reader`/WebFetch (FoxIO/ja4, Cisco/mercury, GrapheneOS/Auditor, ~~one DRM-extraction tool~~ removed in Round-2.5 F34, CamoDroid, reveny/Android-Emulator-Detection, trustdevice-android, the four arXiv abstracts). All return HTTP 200 with the documented metadata. No paywalled-only links included; ResearchGate-only entries that would otherwise be paywalled are omitted in favour of arXiv/IEEE preprints.
 
 ---
 
@@ -59,7 +59,7 @@ Total: 27 academic/quasi-academic entries (filtered from larger candidate set).
 | GrapheneOS/Auditor | Hardware-backed attestation + remote-verification reference impl | Probe #69 / #70 + Adversary L_AdvA reference | https://github.com/GrapheneOS/Auditor | MIT | 2026-03-12 |
 | GrapheneOS/AttestationServer | Server side of Auditor (verified attestation chain) | Reference for D2 § Server-Side Adversary | https://github.com/GrapheneOS/AttestationServer | MIT | active |
 | trustdecision/trustdevice-android | Open-source Android fingerprint SDK (Kotlin) | DetectorLab implementation reference (already in `refs/bibliography.md`, but we should pin commit) | https://github.com/trustdecision/trustdevice-android | MIT | 2025-12-04 |
-| ~~hyugogirubato/KeyDive~~ | ~~Widevine L3 key-extraction~~ | **REMOVED** per Round-2 Action A1 — see [`plans/07-round-2-feedback.md`](../../plans/07-round-2-feedback.md). Active DRM-circumvention tools cannot be cited even read-only under §202c StGB analysis. Replaced below by KeyDroid (Cambridge 2025) academic paper which discusses the same Widevine L1/L3 capability-separation question without linking to extraction tooling. | — | — | — |
+| _[Entry removed in Round-2 Action A1 + Round-2.5 F34. The Widevine L1/L3 capability-separation discussion is now anchored exclusively on the Blessing/Anderson/Beresford Cambridge 2025 academic paper — see Section 1 row "KeyDroid". No DRM-circumvention tooling is cited in this repository.]_ | | | | | |
 | reveny/Android-Emulator-Detection | POC emulator-detection (Studio AVD + game emulators) | Probe #19 negative-control baseline | https://github.com/reveny/Android-Emulator-Detection | GPL-3.0 | 2024-11-02 |
 | Parseus/codecinfo | Detailed multimedia-codec listing (MediaCodecList) | Probe #73 reference impl | https://github.com/Parseus/codecinfo | Apache-2.0 | active 2024 |
 | farnoodfaghihi/CamoDroid | Sandbox cloaking environment (96 % evasion-malware bypass) | **Negative example** — counter-adversary; relevant for F19 negative-controls baseline | https://github.com/farnoodfaghihi/CamoDroid | MIT | 2021 (older — cite as "v1.0 reference impl"; not active) |
@@ -118,7 +118,7 @@ For each probe gap (#61–#74 from F5 + the new #75 we propose), the existing re
 - **#67 `integrity.cacerts_diff`** — Hash `/system/etc/security/cacerts/*` and compare against AOSP-baseline. Foundational paper: Vallina-Rodriguez CoNEXT 2014. Implementation hint: keep an in-app SHA-256 manifest of expected hashes per Android API level.
 - **#68 `runtime.app_uptime_variance`** — `Process.getElapsedCpuTime()` + `SystemClock.elapsedRealtime()` over a 30 s window. No directly-targeted academic paper; reference: forensic literature (Magnet Forensics emulator-forensics article; Oxygen Forensics BlueStacks article).
 - **#69 `integrity.vbmeta_hash_chain`** — Walk AVB 2.0 hash-chain (`vbmeta` partition + chained partitions). Reference impls: `bkerler/dump_avb_signature` (extract), `reveny/Android-VBMeta-Fixer` (inspect/patch — read-only consult). Spec: https://android.googlesource.com/platform/external/avb/+/master/README.md.
-- **#70 `identity.widevine_level`** — `MediaDrm.getPropertyString("securityLevel")` + `DrmManagerClient.acquireDrmInfo()` for `WVDrmInfoRequestStatusKey`. Academic baseline: Neodyme blog (Qiling/DFA on L3); `KeyDive` is the **read-only-cite** L3-extractor reference (do not run; §202c risk).
+- **#70 `identity.widevine_level`** — `MediaDrm.getPropertyString("securityLevel")` + `DrmManagerClient.acquireDrmInfo()` for `WVDrmInfoRequestStatusKey`. Academic baseline: Neodyme research blog on Qiling/DFA against DRM enforcement (cited for context only) and KeyDroid (Cambridge 2025 — Section 1) for the empirical L1/L3 prevalence study. **No DRM circumvention tooling is referenced or linked from this repository per Round-2.5 F34.**
 - **#71 `runtime.binder_transaction_cost`** — Measure round-trip latency of a no-op AIDL call. Surface-area mapped by USENIX 2025 NASS paper. Implementation hint: use `android.os.IBinder.transact()` directly with empty Parcel.
 - **#72 `env.camera2_metadata`** — `CameraManager.getCameraCharacteristics()` enumeration. Reference: Camera2 API docs + `CameraX Info` open-source app on F-Droid. No academic-fingerprinting paper specifically targets Camera2 on Android, but the data is well-suited to our F6 ML-Adversary L_AdvB.
 - **#73 `env.audio_codec_capabilities`** — `MediaCodecList(REGULAR_CODECS).getCodecInfos()`. Reference impl: `Parseus/codecinfo` (Apache-2.0, active 2024). Browser-side fingerprinting analogue documented at scrapfly.io.
@@ -253,14 +253,14 @@ For each probe gap (#61–#74 from F5 + the new #75 we propose), the existing re
 2. **CYSEC TU Darmstadt** — no 2024–2025 paper found that directly addresses our probe overlap. Worth a direct mailing-list inquiry to the institute, or accept as "not currently active in this micro-niche"?
 3. **Industry-blog inclusion policy** — Cloudflare/VirusTotal/StrangeBee blogs are production-deployment evidence with high credibility but are not peer-reviewed. Bibliography section "Industry Whitepaper / Production Deployment Evidence" or omit?
 4. **CamoDroid (2021, MIT)** is older than the 18-month freshness threshold but is the canonical academic counter-adversary reference. Keep as historical OSS, or move to academic-references table?
-5. **F22 / §202c reminder** — the KeyDive entry is included as an academic citation only. Confirm with legal that *citing* an L3-extraction tool's GitHub URL in a published paper is below the §202c threshold, even if cloning/running it would not be. (Counter-precedent: the Shakevsky et al. 2022 USENIX paper cites and discusses Keymaster RE in detail, accepted at peer-review.)
+5. **F22 / §202c — DRM-tooling citations** — _Round-2.5 F35 closed:_ all references to active DRM-circumvention tooling have been physically removed from this document. The Widevine L1/L3 capability-separation discussion is now anchored exclusively on the Blessing/Anderson/Beresford **KeyDroid** Cambridge 2025 academic paper (Section 1) and on architectural analyses (Neodyme blog) that contain no extraction tooling. No further legal-team consultation is needed for this question; the question itself is resolved by removal.
 
 ---
 
 ## Reviewer-Validation Required Before Merge into `refs/bibliography.md`
 
 - [ ] Multi-reviewer round (≥2 of: Gemini-CLI, architecture-strategist, security-auditor, gap-analyst)
-- [ ] Legal-Gate spot-check on KeyDive citation (Open Question 5)
+- [x] Legal-Gate spot-check on DRM-tooling citations — closed by physical removal in Round-2.5 F35.
 - [ ] Pre-Registration impact assessment — none expected (this is a bibliography extension, not a hypothesis change)
 - [ ] Cross-reference each F5-probe (#61–#74) against the implementation-hints column to confirm coverage
 

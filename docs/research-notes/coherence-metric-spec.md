@@ -108,16 +108,23 @@ c_score ∈ [0, 1], where:
 - c_score → 1 means "highly consistent with reference distribution" (real-device-like)
 - c_score → 0 means "highly inconsistent" (spoofed combination of probes)
 
-**Threshold**: at α = 0.05 with Benjamini-Hochberg FDR-correction over 7 layer-deltas (the comparisons we care about), reject the null when c_score < 0.05/7 ≈ 0.00714 (Bonferroni-conservative bound) OR when q-value (BH-adjusted) < 0.05.
+**Threshold (Round-2.5 F40 fix):** at α = 0.05 with **Benjamini-Hochberg FDR-correction only** (NOT mixed with Bonferroni, which the Gemini reviewer correctly flagged as α-inflating when combined via OR). Reject the null for layer L_n when the BH-adjusted q-value < 0.05 over the 7 layer-deltas. Bonferroni was previously offered as an OR-of-criteria alternative; this is removed because OR-combining two correction methods compounds the Type-I error rather than reducing it.
 
-### 3.5 Why Fisher's method?
+### 3.5 Why Brown's method (NOT Fisher's)
 
-- Closed-form analytic null → pre-registrable on OSF
-- Combines independent p-values into one global test
-- Robust to mixed types (we feed it both continuous and categorical p-values)
-- Generally accepted in meta-analysis literature (Fisher 1925; well-tested in genomics for combining probe-level tests)
+**Round-2.5 update:** Both Gemini-3-Pro and architecture-strategist reviewers correctly flagged that Fisher's method is inappropriate here because probe-pair p-values are **demonstrably non-independent** (probes #1, #7, #9, #28 all derive from `getprop`; sensor probes share IRQ-clock substrate). Fisher's method on dependent p-values inflates Type-I error materially. We pre-commit to **Brown's method (Brown 1975)** before OSF lock.
 
-Caveat: assumes pair-level independence of p-values. In our setting, probes are NOT independent (e.g. `ro.build.brand` and `ro.build.model` share substrate). Mitigation: pre-cluster correlated probes (Pearson > 0.9 in reference distribution) and use only one representative per cluster — reduces n from ~75 to expected ~30 effective probes. This step happens once at protocol-fixing time, before any L1–L6 measurement.
+- Closed-form analytic null → pre-registrable on OSF (same property as Fisher)
+- Brown's method adjusts the χ² statistic via an effective degrees-of-freedom term that accounts for the covariance structure of the p-values:
+  ```
+  X²_Brown = (-2 · Σ ln(p_ij)) / c
+  df_Brown = 2 · m / c
+  c = 1 + (var(X²)/(2·E[X²]) − 1) · estimated from reference distribution
+  ```
+  where `c ≥ 1` is the dependence-correction factor estimated from the empirical pairwise covariance of the p-values under R.
+- Robust to mixed types (we feed it both continuous and categorical p-values, identical to the Fisher pipeline)
+- Pre-cluster correlated probes at threshold **ρ = 0.7** (not 0.9 — Round-2.5 Gemini line 161) — reduces residual collinearity and complements Brown's covariance correction.
+- Reference: Brown, M.B. (1975). _A method for combining non-independent, one-sided tests of significance._ Biometrics 31:987–992. Implementation in `scipy.stats.combine_pvalues(method='mudholkar_george')` is mathematically equivalent for our use; Python sketch in §5 is updated accordingly.
 
 ---
 

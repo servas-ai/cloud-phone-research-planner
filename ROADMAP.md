@@ -59,9 +59,9 @@ gantt
 
 | State | Count | Findings |
 |---|---:|---|
-| ✅ Resolved (Round 2) | 6 | F4, F5, F6, F16, F20, F21 |
+| ✅ Resolved (Round 2) | 6 | F4, F5, F6, F16, F20, F21-arch (F21-legal still in Legal-Gate row below — Round-2.5 F36 split) |
 | 🟡 In Round-2.5 review | 4 | F31 (probe #75), F32 (coherence), A2, A3 |
-| 🔴 Legal-Gate blocked | 3 | F22, F23, F21-impl |
+| 🔴 Legal-Gate blocked | 3 | F22, F23, F21-legal (the legal-clearance leg of F21 — runner SPEC architecturally enforces F21 but the actual lab deployment still requires university Rechtsabteilung sign-off) |
 | 📋 Open (deferred to Round 3) | 17 | F1, F2, F3, F7, F8, F9, F10, F11, F12, F13, F14, F15, F17, F18, F19, F24, F25 |
 | **Total** | **30** | |
 
