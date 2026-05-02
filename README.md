@@ -9,7 +9,11 @@
   <a href="#"><img alt="Phase" src="https://img.shields.io/badge/phase-0_blocked_by_legal-yellow"></a>
   <a href="#"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0_(code)-green"></a>
   <a href="#"><img alt="Scope" src="https://img.shields.io/badge/scope-detection__research_only-lightgrey"></a>
+  <a href="AGENTS.md"><img alt="AI Agents" src="https://img.shields.io/badge/🤖_AI_agents-read_AGENTS.md_first-purple"></a>
+  <a href=".claude/skills/cloud-phone-research/SKILL.md"><img alt="Skill" src="https://img.shields.io/badge/skill-cloud--phone--research-9333ea"></a>
 </p>
+
+> **🤖 AI Agents** — entering this repo? Read [`AGENTS.md`](AGENTS.md) **first**. Then activate the project skill at [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md). Three ready-to-paste prompts in [`prompts/`](prompts/): extend a finding, propose a probe, run a fresh validation round.
 
 > **Hochschulkontext** — Dieses Repository ist die Planungs- und Tracking-App für das Forschungsvorhaben.
 > Es enthält **kein** Spoofing-Tooling und **keine** Anleitungen gegen Drittsysteme. Tests laufen ausschliesslich gegen die selbstentwickelte `DetectorLab`-Suite im isolierten Lab. Live-Plattform-Tests (TikTok / Instagram / etc.) sind explizit **out of scope**.
@@ -415,6 +419,52 @@ Damit wird **Detection-Result-Reproducibility** vollumfänglich gewährleistet, 
 | Rechtsrahmen | §202c StGB · §259 StGB · EU 2021/821 (Dual-Use) · DSGVO Art. 89 (Forschungsprivileg) |
 
 Vollständig in [`docs/ethics-and-scope.md`](docs/ethics-and-scope.md).
+
+---
+
+## 🤖 Für AI Agents
+
+Dieses Repository ist **agent-ready**. Drei Eintrittsdateien:
+
+| Datei | Zweck |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | Hard rules · Plan-Immutability · Legal-Gate · Scope-Lock |
+| [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md) | Vollständiger Research-Loop-Workflow für Claude Code |
+| [`SKILL.md`](SKILL.md) | Generisches Discovery-File für non-Claude-Agents (Codex, Gemini, Cursor, Aider, …) |
+
+**Drei Ready-To-Paste-Prompts** in [`prompts/`](prompts/):
+
+| Prompt | Use-Case |
+|---|---|
+| [`prompts/01-extend-finding.md`](prompts/01-extend-finding.md) | Open Finding F-{X} aus Round 1 in eine reviewete Addendum-Patch verarbeiten |
+| [`prompts/02-add-probe.md`](prompts/02-add-probe.md) | Neue Detection-Probe vorschlagen (mit Threat-Model-Justification + Reviewer-Gauntlet) |
+| [`prompts/03-validate-round.md`](prompts/03-validate-round.md) | Frische Multi-Reviewer-Validation-Round (Gemini + Claude-Subagents) orchestrieren |
+
+Workflow für Agenten:
+
+```mermaid
+flowchart LR
+    AGENT["🤖 Agent enters repo"] --> READ_AGENTS["Read AGENTS.md"]
+    READ_AGENTS --> READ_SKILL["Activate SKILL.md"]
+    READ_SKILL --> READ_FINDINGS["Read plans/05-validation-feedback.md"]
+    READ_FINDINGS --> PICK["Pick open Finding"]
+    PICK --> LEGAL_CHECK{Legal-Gate?<br/>F21/F22/F23?}
+    LEGAL_CHECK -->|Yes| STOP["🛑 Human-only<br/>do not draft"]
+    LEGAL_CHECK -->|No| RESEARCH["Research<br/>(zread/web-search/web-reader)"]
+    RESEARCH --> ADDENDUM["Draft addendum<br/>plans/06-{F-id}-addendum.md"]
+    ADDENDUM --> REVIEW["Multi-reviewer round<br/>≥2 reviewers parallel"]
+    REVIEW --> WAIT["⏸️ Wait for human Y/N"]
+    WAIT -->|Y| APPLY["Apply patch +<br/>commit + push"]
+    WAIT -->|N| ITERATE["Iterate addendum"]
+
+    classDef stop fill:#fee2e2,stroke:#dc2626,color:#000
+    classDef wait fill:#fef3c7,stroke:#d97706,color:#000
+    classDef go fill:#dcfce7,stroke:#16a34a,color:#000
+
+    class STOP stop
+    class WAIT,LEGAL_CHECK wait
+    class APPLY go
+```
 
 ---
 
