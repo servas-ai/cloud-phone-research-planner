@@ -1,0 +1,491 @@
+# Probe-Inventar — 60 Detection-Punkte
+# Quelle: Recherche-Synthese GPT-5.2 / Claude Opus 4.6 / Grok 4.1
+# Format: rank, id, category, severity, layer, description, mitigation_layer
+
+schemaVersion: "1.0"
+
+probes:
+  # ============== KRITISCH (Rank 1-10) ==============
+  - rank: 1
+    id: buildprop.fingerprint
+    category: buildprop
+    severity: critical
+    android_layer: native
+    description: "ro.build.fingerprint, ro.build.display.id, security patch"
+    mitigation_layer: L1
+
+  - rank: 2
+    id: integrity.play_integrity
+    category: integrity
+    severity: critical
+    android_layer: application
+    description: "Play Integrity BASIC/DEVICE/STRONG verdict, CTS profile"
+    mitigation_layer: L3
+
+  - rank: 3
+    id: root.su_detection
+    category: root
+    severity: critical
+    android_layer: native
+    description: "su binary, magisk package, /sbin/su, Superuser.apk"
+    mitigation_layer: L4
+
+  - rank: 4
+    id: emulator.qemu_artifacts
+    category: emulator
+    severity: critical
+    android_layer: kernel
+    description: "ro.hardware=goldfish/vbox/ranchu, ro.kernel.qemu, qemu pipes"
+    mitigation_layer: L1
+
+  - rank: 5
+    id: network.ip_asn
+    category: network
+    severity: critical
+    android_layer: network
+    description: "Datacenter vs Residential vs Mobile ASN, IP reputation"
+    mitigation_layer: L6
+
+  - rank: 6
+    id: integrity.keystore_attestation
+    category: integrity
+    severity: critical
+    android_layer: hardware
+    description: "TEE/StrongBox keystore attestation cert chain"
+    mitigation_layer: L3
+
+  - rank: 7
+    id: buildprop.tags_and_type
+    category: buildprop
+    severity: critical
+    android_layer: native
+    description: "ro.build.tags=release-keys, ro.build.type=user"
+    mitigation_layer: L1
+
+  - rank: 8
+    id: runtime.xposed_lsposed
+    category: runtime
+    severity: critical
+    android_layer: framework
+    description: "Xposed classloader, zygisk traces, hook artifacts in /proc/self/maps"
+    mitigation_layer: L4
+
+  - rank: 9
+    id: buildprop.model_brand_manufacturer
+    category: buildprop
+    severity: critical
+    android_layer: native
+    description: "ro.product.model, ro.product.brand, ro.product.manufacturer consistency"
+    mitigation_layer: L1
+
+  - rank: 10
+    id: runtime.installed_apps
+    category: runtime
+    severity: critical
+    android_layer: framework
+    description: "Magisk Manager, LSPosed, Xposed Installer visible"
+    mitigation_layer: L4
+
+  # ============== HOCH (Rank 11-25) ==============
+  - rank: 11
+    id: identity.android_id
+    category: identity
+    severity: high
+    android_layer: framework
+    description: "Settings.Secure.ANDROID_ID per app+user since A8"
+    mitigation_layer: L2
+
+  - rank: 12
+    id: identity.imei_serial
+    category: identity
+    severity: high
+    android_layer: framework
+    description: "IMEI (restricted A10+), Serial, hardware ID"
+    mitigation_layer: L2
+
+  - rank: 13
+    id: env.bootloader
+    category: env
+    severity: high
+    android_layer: native
+    description: "ro.boot.vbmeta.device_state locked/unlocked"
+    mitigation_layer: L1
+
+  - rank: 14
+    id: root.selinux
+    category: root
+    severity: high
+    android_layer: kernel
+    description: "Enforcing vs Permissive — Permissive = root indicator"
+    mitigation_layer: L4
+
+  - rank: 15
+    id: identity.wifi_mac
+    category: identity
+    severity: high
+    android_layer: framework
+    description: "WiFi MAC address, randomized A10+ but checked via /proc"
+    mitigation_layer: L2
+
+  - rank: 16
+    id: identity.gaid
+    category: identity
+    severity: high
+    android_layer: application
+    description: "Google Advertising ID via Play Services"
+    mitigation_layer: L2
+
+  - rank: 17
+    id: identity.gsf_id
+    category: identity
+    severity: high
+    android_layer: framework
+    description: "Google Services Framework device ID"
+    mitigation_layer: L2
+
+  - rank: 18
+    id: network.vpn_proxy
+    category: network
+    severity: high
+    android_layer: network
+    description: "tun0/ppp0 interface, TRANSPORT_VPN flag"
+    mitigation_layer: L6
+
+  - rank: 19
+    id: env.developer_options
+    category: env
+    severity: high
+    android_layer: framework
+    description: "development_settings_enabled, adb_enabled"
+    mitigation_layer: L4
+
+  - rank: 20
+    id: env.timezone_locale_mismatch
+    category: env
+    severity: high
+    android_layer: framework
+    description: "Timezone vs IP geolocation mismatch"
+    mitigation_layer: L1
+
+  - rank: 21
+    id: identity.sim_iccid
+    category: identity
+    severity: high
+    android_layer: framework
+    description: "SIM ICCID, missing = emulator"
+    mitigation_layer: L2
+
+  - rank: 22
+    id: identity.carrier_mccmnc
+    category: identity
+    severity: high
+    android_layer: framework
+    description: "Network operator name and MCC/MNC"
+    mitigation_layer: L2
+
+  - rank: 23
+    id: ui.screen_resolution
+    category: ui
+    severity: high
+    android_layer: framework
+    description: "Width x Height x DPI consistency with declared model"
+    mitigation_layer: L1
+
+  - rank: 24
+    id: sensors.accelerometer_gyro
+    category: sensors
+    severity: high
+    android_layer: hardware
+    description: "Sensor noise, drift, FFT analysis"
+    mitigation_layer: L5
+
+  - rank: 25
+    id: network.network_type
+    category: network
+    severity: high
+    android_layer: network
+    description: "WiFi vs Cellular — emulators rarely have cellular"
+    mitigation_layer: L6
+
+  # ============== MITTEL (Rank 26-40) ==============
+  - rank: 26
+    id: emulator.gpu_renderer
+    category: emulator
+    severity: medium
+    android_layer: hardware
+    description: "GLES20 GL_RENDERER — SwiftShader/llvmpipe = emulator"
+    mitigation_layer: L1
+
+  - rank: 27
+    id: emulator.cpu_abi
+    category: emulator
+    severity: medium
+    android_layer: kernel
+    description: "Build.SUPPORTED_ABIS — x86 on ARM-claimed device = flag"
+    mitigation_layer: L1
+
+  - rank: 28
+    id: buildprop.board_hardware
+    category: buildprop
+    severity: medium
+    android_layer: native
+    description: "ro.product.board, ro.hardware — goldfish/ranchu = emulator"
+    mitigation_layer: L1
+
+  - rank: 29
+    id: identity.mediadrm
+    category: identity
+    severity: medium
+    android_layer: hardware
+    description: "MediaDrm unique device ID, hard to spoof"
+    mitigation_layer: L2
+
+  - rank: 30
+    id: emulator.proc_version
+    category: emulator
+    severity: medium
+    android_layer: kernel
+    description: "/proc/version host kernel leak"
+    mitigation_layer: L0
+
+  - rank: 31
+    id: identity.bluetooth_mac
+    category: identity
+    severity: medium
+    android_layer: framework
+    description: "Bluetooth MAC, format validation"
+    mitigation_layer: L2
+
+  - rank: 32
+    id: identity.wifi_ssid_bssid
+    category: identity
+    severity: medium
+    android_layer: framework
+    description: "Connected SSID/BSSID — empty = emulator"
+    mitigation_layer: L2
+
+  - rank: 33
+    id: env.battery_level
+    category: env
+    severity: medium
+    android_layer: framework
+    description: "Static 100% = emulator"
+    mitigation_layer: L1
+
+  - rank: 34
+    id: env.battery_temperature
+    category: env
+    severity: medium
+    android_layer: framework
+    description: "Constant temperature = emulator"
+    mitigation_layer: L1
+
+  - rank: 35
+    id: env.charging_state
+    category: env
+    severity: medium
+    android_layer: framework
+    description: "Permanent charging = emulator"
+    mitigation_layer: L1
+
+  - rank: 36
+    id: env.language_country
+    category: env
+    severity: medium
+    android_layer: framework
+    description: "Locale mismatch with IP"
+    mitigation_layer: L1
+
+  - rank: 37
+    id: network.dns_server
+    category: network
+    severity: medium
+    android_layer: network
+    description: "Custom DNS vs ISP DNS"
+    mitigation_layer: L6
+
+  - rank: 38
+    id: network.http_proxy
+    category: network
+    severity: medium
+    android_layer: framework
+    description: "System.getProperty http.proxyHost"
+    mitigation_layer: L6
+
+  - rank: 39
+    id: env.mock_location
+    category: env
+    severity: medium
+    android_layer: framework
+    description: "isFromMockProvider flag"
+    mitigation_layer: L4
+
+  - rank: 40
+    id: env.accounts
+    category: env
+    severity: medium
+    android_layer: framework
+    description: "Google account presence — none = bot"
+    mitigation_layer: manual
+
+  # ============== NIEDRIG (Rank 41-50) ==============
+  - rank: 41
+    id: env.gps_coordinates
+    category: env
+    severity: low
+    android_layer: framework
+    description: "Static/missing GPS, geo-IP mismatch"
+    mitigation_layer: L4
+
+  - rank: 42
+    id: sensors.proximity
+    category: sensors
+    severity: low
+    android_layer: hardware
+    description: "Proximity sensor presence"
+    mitigation_layer: L5
+
+  - rank: 43
+    id: sensors.light
+    category: sensors
+    severity: low
+    android_layer: hardware
+    description: "Ambient light static = emulator"
+    mitigation_layer: L5
+
+  - rank: 44
+    id: sensors.magnetometer
+    category: sensors
+    severity: low
+    android_layer: hardware
+    description: "Compass/magnetic field"
+    mitigation_layer: L5
+
+  - rank: 45
+    id: sensors.barometer
+    category: sensors
+    severity: low
+    android_layer: hardware
+    description: "Pressure sensor (luxury feature)"
+    mitigation_layer: L5
+
+  - rank: 46
+    id: ui.refresh_rate
+    category: ui
+    severity: low
+    android_layer: framework
+    description: "60/90/120Hz consistency with model"
+    mitigation_layer: L1
+
+  - rank: 47
+    id: env.uptime
+    category: env
+    severity: low
+    android_layer: framework
+    description: "Boot-time < 5min = suspicious"
+    mitigation_layer: manual
+
+  - rank: 48
+    id: env.nfc_state
+    category: env
+    severity: low
+    android_layer: framework
+    description: "NfcAdapter presence"
+    mitigation_layer: not_spoofable
+
+  - rank: 49
+    id: env.bluetooth_state
+    category: env
+    severity: low
+    android_layer: framework
+    description: "BT adapter presence"
+    mitigation_layer: L0
+
+  - rank: 50
+    id: runtime.services_processes
+    category: runtime
+    severity: low
+    android_layer: framework
+    description: "Running services with automation packages visible"
+    mitigation_layer: L4
+
+  # ============== ERGAENZEND (Rank 51-60) ==============
+  - rank: 51
+    id: ui.system_fonts
+    category: ui
+    severity: trace
+    android_layer: framework
+    description: "Font list as fingerprint"
+    mitigation_layer: L0
+
+  - rank: 52
+    id: ui.display_cutout
+    category: ui
+    severity: trace
+    android_layer: framework
+    description: "DisplayCutout matches model?"
+    mitigation_layer: L1
+
+  - rank: 53
+    id: env.camera_info
+    category: env
+    severity: trace
+    android_layer: hardware
+    description: "Front/back camera, megapixel, focal length"
+    mitigation_layer: L1
+
+  - rank: 54
+    id: ui.audio_fingerprint
+    category: ui
+    severity: trace
+    android_layer: application
+    description: "Audio processing differences (WebView only)"
+    mitigation_layer: not_native
+
+  - rank: 55
+    id: ui.canvas_fingerprint
+    category: ui
+    severity: trace
+    android_layer: application
+    description: "Canvas rendering differences (WebView)"
+    mitigation_layer: not_native
+
+  - rank: 56
+    id: ui.webgl_fingerprint
+    category: ui
+    severity: trace
+    android_layer: application
+    description: "GPU shader fingerprint, SwiftShader = emulator"
+    mitigation_layer: L0
+
+  - rank: 57
+    id: ui.touch_pressure
+    category: ui
+    severity: trace
+    android_layer: hardware
+    description: "MotionEvent pressure, isTrusted, bezier timing"
+    mitigation_layer: not_spoofable
+
+  - rank: 58
+    id: ui.input_method
+    category: ui
+    severity: trace
+    android_layer: framework
+    description: "Default IME presence"
+    mitigation_layer: manual
+
+  - rank: 59
+    id: env.accessibility_services
+    category: env
+    severity: trace
+    android_layer: framework
+    description: "enabled_accessibility_services"
+    mitigation_layer: manual
+
+  - rank: 60
+    id: integrity.app_signature
+    category: integrity
+    severity: trace
+    android_layer: application
+    description: "Tamper/hooking detection via package signatures"
+    mitigation_layer: L4

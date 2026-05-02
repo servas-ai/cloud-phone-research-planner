@@ -1,0 +1,29 @@
+# Lab-Daten und Geheimnisse
+experiments/runs/**/*.json
+experiments/aggregate/*.csv
+experiments/artifacts/*.svg
+experiments/artifacts/*.png
+
+# Keyboxen NIEMALS committen
+**/keybox*.xml
+**/keybox*.bin
+
+# Container-Images (zu gross)
+*.img
+*.img.xz
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Build
+build/
+dist/
+*.apk
+*.aab
+
+# Secrets
+.env
+.env.local
+secrets.yml
