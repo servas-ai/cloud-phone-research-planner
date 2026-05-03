@@ -17,7 +17,7 @@
   <a href="CITATION.cff"><img alt="Citable" src="https://img.shields.io/badge/citable-CITATION.cff-orange"></a>
 </p>
 
-> **🤖 AI Agents** — entering this repo? Read [`AGENTS.md`](AGENTS.md) **first**. Then activate the project skill at [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md). Three ready-to-paste prompts in [`prompts/`](prompts/): extend a finding, propose a probe, run a fresh validation round.
+> **🤖 AI Agents** — entering this repo? Read [`HANDOFF.md`](HANDOFF.md) for a complete status briefing, then [`AGENTS.md`](AGENTS.md) for the hard rules. Activate the project skill at [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md). Three ready-to-paste prompts in [`prompts/`](prompts/).
 
 > **Hochschulkontext** — Dieses Repository ist die Planungs- und Tracking-App für das Forschungsvorhaben.
 > Es enthält **kein** Spoofing-Tooling und **keine** Anleitungen gegen Drittsysteme. Tests laufen ausschliesslich gegen die selbstentwickelte `DetectorLab`-Suite im isolierten Lab. Live-Plattform-Tests (TikTok / Instagram / etc.) sind explizit **out of scope**.
