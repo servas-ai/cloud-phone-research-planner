@@ -1,0 +1,30 @@
+{
+  "$schema": "https://paperclip.dev/schemas/workspace.json",
+  "version": "1",
+  "workspace": {
+    "name": "cloud-phone-research-planner",
+    "description": "Two-agent system for ReDroid 12 container detection-resistance testing"
+  },
+  "agents": [
+    {
+      "id": "detection",
+      "path": "agents/detection",
+      "manifest": "agent.yaml"
+    },
+    {
+      "id": "stability",
+      "path": "agents/stability",
+      "manifest": "agent.yaml"
+    },
+    {
+      "id": "orchestrator",
+      "path": "agents/orchestrator",
+      "manifest": "agent.yaml"
+    }
+  ],
+  "shared": {
+    "schema": "shared/probe-schema.md",
+    "probes": "shared/probes/inventory.yml",
+    "threat_model": "shared/threat-model.md"
+  }
+}
