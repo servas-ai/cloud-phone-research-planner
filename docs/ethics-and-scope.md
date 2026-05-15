@@ -18,7 +18,9 @@ Dieses Projekt ist akademische Sicherheitsforschung im kontrollierten Lab einer 
 
 - **§202c StGB (Vorbereitung von Ausspaehen / Abfangen)**: Erstellen und Besitz von "Hacker-Tools" ist strafbar, **wenn** sie zur Begehung von Straftaten bestimmt sind. Reine Forschungs- und Auditierungs-Tools sind ueberwiegende Auffassung legal. DetectorLab faellt klar in den zweiten Bereich.
 - **§88 TKG**: Telekommunikationsgeheimnis. Nicht relevant, da kein Drittverkehr abgefangen wird.
-- **DSGVO Art. 6 / Art. 89**: Forschungsprivileg fuer wissenschaftliche Zwecke. Keine personenbezogenen Daten werden verarbeitet (nur eigene Geraete, keine User-Profile).
+- **Technischer Scope**: Das Projekt verarbeitet keine User-Profile,
+  keine Accounts und keine Daten von Personen. Messdaten stammen aus
+  isolierten Lab-Systemen und selbst kontrollierter Test-Hardware.
 - **TMG / DSA**: Keine Kommunikation mit Live-Plattformen.
 
 ## Plattform-ToS
@@ -31,9 +33,14 @@ Antrag bei der Ethik-Kommission der Hochschule mit folgenden Punkten:
 
 1. **Studienziel**: Empirische Evaluation von Detection-Robustheit
 2. **Studientyp**: Technische Evaluation, keine Probandenstudie
-3. **Datenarten**: Nur Geraete-Telemetrie eigener Hardware, keine personenbezogenen Daten
+3. **Datenarten**: Lab-Telemetrie eigener oder universitaerer Hardware,
+   keine User-Profile, keine Accounts, keine Personen-Traces
 4. **Risiken fuer Dritte**: Keine, da keine Drittsysteme involviert
 5. **Veroeffentlichung**: Methodologie + DetectorLab open-source; Spoofing-Stack nur als wissenschaftliche Beschreibung im Paper
+
+Phase 0 darf erst verlassen werden, wenn `registration/approval-log.md`
+alle anwendbaren Gates als freigegeben dokumentiert: Ethik-/Scope-Review,
+IT-Security, Legal-Gate F21/F22/F23 und OSF-Pre-Registration.
 
 ## Disclosure-Policy
 

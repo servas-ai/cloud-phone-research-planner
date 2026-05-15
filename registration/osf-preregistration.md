@@ -51,9 +51,12 @@ All scores are derived from probe-output JSON validated against `docs/probe-sche
 
 ---
 
-## 4. How many and which conditions will participants be assigned to?
+## 4. How many and which technical conditions will be evaluated?
 
-**Not a human-subjects study.** The "participants" are 8 stack configurations of the ReDroid 12 SpoofStack, each run N=60 times (§7). Derived from `plans/03-experiment-matrix.md` lines 7–20, with L0a/L0b split per F1 (`plans/05-validation-feedback.md` lines 30–38).
+This is a technical systems experiment. The experimental units are 8 stack
+configurations of the ReDroid 12 SpoofStack, each run N=60 times (§7). Derived
+from `plans/03-experiment-matrix.md` lines 7–20, with L0a/L0b split per F1
+(`plans/05-validation-feedback.md` lines 30–38).
 
 | Config-ID | Stack composition | Role |
 |---|---|---|
