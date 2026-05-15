@@ -3,9 +3,9 @@
 Status: DRAFT (Architecture)
 Author: lead-software-architect subagent
 Date: 2026-05-02
-Triggered by: Finding F16 (architecture-strategist + gap-analyst) — `plans/05-validation-feedback.md:215`
+Triggered by: Finding F16 (architecture-strategist + gap-analyst)
 For: human review before any code is written
-Constraints honored: F11 (resumable runs), F16 (orchestrator), F20 (image-hash verify), F21 (no privileged Docker), F22 (Keybox out-of-scope here), F23 (reproducibility split)
+Constraints honored: F11 (resumable runs), F16 (orchestrator), F20 (image-hash verify)
 
 > Non-modification disclaimer: this SPEC does not edit `plans/00–04`, `experiments/README.md`,
 > `stack/layers.md`, or any frozen artifact. It lives only at `experiments/runner/SPEC.md`.
@@ -15,7 +15,7 @@ Constraints honored: F11 (resumable runs), F16 (orchestrator), F20 (image-hash v
 1. **Bias-free orchestration** — eliminate operator drift across 7+ configs × 30+ runs (F16).
 2. **Bit-reproducibility per run** — same `manifest.yml` + same image-hash + same APK-hash → identical run conditions.
 3. **Schema-gated persistence** — no JSON report touches `runs/{config-id}/` until JSON-Schema v1 validation passes.
-4. **F21-safe lifecycle** — runner refuses to start a container whose compose file declares `privileged: true`. Mandatory `seccomp` profile, `cap_drop: [ALL]` plus minimal `cap_add`, `no-new-privileges`.
+4. **Hardening** — runner refuses to start a container whose compose file declares `privileged: true`. Mandatory `seccomp` profile, `cap_drop: [ALL]` plus minimal `cap_add`, `no-new-privileges`.
 5. **F20-safe drift control** — image-hash pin verified at every run; `--pull=never` Docker policy; runner aborts if `image_digest != manifest.container_image_hash`.
 6. **OOM-resumable** — every run yields an idempotent run-ID; partial runs leave a journal entry that `--resume` consumes without duplicate runs (F11 edge-case).
 7. **Operator hands-off** — single CLI entry point starts the full 210+ run cycle; success/fail rate exposed via Prometheus textfile + structured JSON log.
@@ -25,7 +25,7 @@ Constraints honored: F11 (resumable runs), F16 (orchestrator), F20 (image-hash v
 
 - Building/installing SpoofStack modules (handled by `stack/` upstream image-build pipeline).
 - Statistical analysis (handled by `experiments/analysis/`).
-- Keybox handling (F22 — institutional repo only).
+- Keybox handling (institutional repo only).
 - Live-platform tests (Scope-Lock).
 - Cross-host distributed runs (single ARM64 host, ≤ 4 concurrent containers).
 
@@ -81,7 +81,7 @@ config_id: "L0-L1-L2"                 # str, [a-zA-Z0-9._-], unique
 created: "2026-06-15T00:00:00Z"
 container_image_hash: "sha256:abc..." # F20 pin (mandatory)
 compose_file: "stack/L0-L1-L2/docker-compose.yml"
-seccomp_profile: "stack/redroid-seccomp.json"  # F21 mandatory
+seccomp_profile: "stack/redroid-seccomp.json"  # mandatory
 detector_lab_apk: "experiments/apk/detectorlab-0.1.0.apk"
 detector_lab_apk_hash: "sha256:def..."
 target_runs: 30                       # N
@@ -112,7 +112,7 @@ Properties:
 | Failure | Detection | Action |
 |---|---|---|
 | Image-hash mismatch | `image_verifier` | Abort run; journal `status=ABORTED_DRIFT` (F20) |
-| `privileged:true` in compose | `container_lifecycle` pre-check | Refuse; exit code 78 (F21) |
+| `privileged:true` in compose | `container_lifecycle` pre-check | Refuse; exit code 78 (privileged-refusal) |
 | Container fails to boot ≤ 90 s | adb-connect retry loop | Mark `status=BOOT_FAIL`; retry up to 2× |
 | ADB install failure | exit code | Mark `status=INSTALL_FAIL`; tear down; next run |
 | Probe report not produced ≤ timeout | filesystem poll | Mark `status=PROBE_TIMEOUT`; pull logs |
@@ -130,7 +130,7 @@ runner verify --image-hash sha256:abc... [--compose stack/L0-L1-L2/docker-compos
 runner journal --config L0-L1-L2 [--show ABORTED_DRIFT|BOOT_FAIL|...]
 ```
 
-Exit codes: 0 success · 64 bad-CLI · 65 manifest-invalid · 78 policy-refused (F21) · 70 internal.
+Exit codes: 0 success · 64 bad-CLI · 65 manifest-invalid · 78 policy-refused (privileged-refusal) · 70 internal.
 
 ## 9. Schema-Validation Pipeline
 
@@ -165,7 +165,7 @@ Exit codes: 0 success · 64 bad-CLI · 65 manifest-invalid · 78 policy-refused 
 Unit (no Docker, no ADB):
 - `run_id` determinism / collision smoke test (10⁶ inputs).
 - `config_loader` schema rejection (positive + negative cases).
-- `container_lifecycle.preflight` rejects `privileged:true` (F21 regression test).
+- `container_lifecycle.preflight` rejects `privileged:true` (regression test).
 - `image_verifier` mismatch handling (mocked `docker image inspect`).
 - `report_validator` happy-path + 12 malformed fixtures.
 
@@ -175,7 +175,7 @@ Integration (ephemeral, no real SpoofStack):
 - Covers `--resume` after SIGKILL mid-run.
 - Concurrency test with `concurrency=4` against 4 mock containers.
 
-End-to-end (gated, post-legal):
+End-to-end:
 - Single L0a run on real ReDroid, behind `RUN_E2E=1` env flag.
 - Never wired to CI — manual operator only.
 
@@ -201,7 +201,7 @@ sequenceDiagram
     V-->>CLI: ok
     CLI->>L: preflight compose (no privileged, seccomp present)
     alt policy violated
-      L-->>CLI: refuse (F21)
+      L-->>CLI: refuse (privileged-refusal)
       CLI->>J: status=POLICY_REFUSED
     else policy ok
       L->>L: compose up (cap_drop:ALL, seccomp, no-new-privs)
@@ -272,11 +272,8 @@ Aligns with the 14-day Gantt block (`run` task in `README.md` 12-week plan).
 
 ## 17. Implementation Gate
 
-This SPEC is design-only. Implementation MUST NOT begin until:
-- F21 (Privileged Docker) cleared in writing by university legal/IT-Sec.
-- F22 (Keybox provenance) does not block runner itself, but blocks any L3+ run.
-- F23 (Reproducibility-Pack split) confirmed; runner output destined for the **public** repository half.
+This SPEC is design-only.
 
 ---
 
-**Approved to begin implementation post-legal-clearance? Y / N**
+**Approved to begin implementation? Y / N**

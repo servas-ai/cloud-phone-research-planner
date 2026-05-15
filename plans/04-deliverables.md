@@ -75,7 +75,7 @@ Network Layer        -> Probes #5 (IP/ASN), #18 (VPN), #20 (TZ-Geo)
 | 5 SpoofStack | L0-L6, Konflikt-Vermeidung | `02-spoofstack.md` |
 | 6 Experimente | Matrix, Statistik | `03-experiment-matrix.md` |
 | 7 Ergebnisse | Heatmap, harte Probes | `experiments/` |
-| 8 Diskussion & Ethik | Implikationen, ToS-Grenzen | `docs/ethics-and-scope.md` |
+| 8 Diskussion | Implikationen, ToS-Grenzen | — |
 | 9 Fazit & Ausblick | offene Fragen | — |
 
 ## Zeitplan-Mapping

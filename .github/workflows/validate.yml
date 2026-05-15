@@ -65,7 +65,7 @@ jobs:
       - name: Verify no live-platform scope creep
         run: |
           set -e
-          # These platforms are explicit out-of-scope per docs/ethics-and-scope.md
+          # These platforms are explicit out-of-scope.
           # Catch accidental references to live-platform integration code.
           violations=0
           for term in "tiktok\.com" "instagram\.com/api" "graph\.facebook\.com" "snapchat\.com/api"; do

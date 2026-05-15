@@ -14,14 +14,13 @@ post-Legal-clearance rounds, pre-publication gates, etc.
 
 | Input | Example | Notes |
 |---|---|---|
-| Round name | `round-2`, `round-3-post-legal`, `pre-submission-usenix` | kebab-case, will appear in the output filename. |
-| Files under review | `plans/00-04 + plans/05 + all addenda in plans/06+` | Default if unspecified — suitable for most rounds. |
-| Reviewer panel | `Gemini-CLI + architecture-strategist + security-auditor + gap-analyst + (optional Codex)` | Aim for 4 independent reviewers. |
-| Output filename | auto-derived: `plans/07-{round-name}-feedback.md` | Do not overwrite Round 1 (`plans/05`). |
+| Round name | `round-2`, `round-3`, `pre-submission` | kebab-case, will appear in the output filename. |
+| Files under review | `plans/00-04 + all addenda in plans/06+` | Default if unspecified — suitable for most rounds. |
+| Reviewer panel | `Gemini-CLI + architecture-strategist + gap-analyst + (optional Codex)` | Aim for 4 independent reviewers. |
+| Output filename | auto-derived: `plans/07-{round-name}-feedback.md` | Do not overwrite previous rounds. |
 
 **Stop conditions:**
 - A reviewer returns evidence that the threat model misses an entire class of detection.
-- A reviewer flags a Legal-Gate issue not previously surfaced.
 - All reviewers fail (rate limits, IDE conflict, missing tools) and you have <2 successful reviews.
 - The output file path you computed already exists (would overwrite previous round).
 - The human asks you to apply findings — that is a separate, explicitly approved patch round.
@@ -99,9 +98,8 @@ Step 2 — Send the validation sub-prompt to each reviewer IN PARALLEL
     ## Strengths (3–5 bullets)
     ## Gaps
        Cover at minimum: detection vectors, statistical rigor,
-       reproducibility, EU/German law (DSGVO, §202c StGB), ARM
-       tooling availability, baseline-device choice.
-    ## Risks (technical, methodological, legal-ethical)
+       reproducibility, ARM tooling availability, baseline-device choice.
+    ## Risks (technical, methodological)
     ## Top-5 Concrete Improvements
        Each with: file path, exact edit type (append / replace-section /
        new-file), one-sentence rationale.
@@ -124,13 +122,9 @@ Reviewer invocations:
 
   b. architecture-strategist (Claude subagent):
      Task tool with subagent_type: architecture-strategist
-     Frame as: "USENIX Security PC reviewer evaluating this plan."
+     Frame as: "Critical reviewer evaluating this plan."
 
-  c. security-auditor (Claude subagent):
-     Task tool with subagent_type: security-auditor
-     Frame as: "§202c StGB + OpSec auditor for German university research."
-
-  d. gap-analyst (Claude subagent):
+  c. gap-analyst (Claude subagent):
      Task tool with subagent_type: gap-analyst
      Frame as: "Find unstated assumptions and hidden dependencies."
 

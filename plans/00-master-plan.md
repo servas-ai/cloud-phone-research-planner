@@ -17,10 +17,8 @@ Endprodukt: Detection-Resistance-Heatmap (60 Probes x N Stack-Konfigurationen) +
 
 ## 3. Phasen
 
-### Phase 0 - Scope & Ethics (Woche 1)
-- IRB / Ethik-Antrag draften
+### Phase 0 - Scope (Woche 1)
 - Lab-Netzwerk-Isolation einrichten (kein Egress zu Live-Plattformen)
-- `docs/ethics-and-scope.md` finalisieren
 
 ### Phase 1 - DetectorLab MVP (Woche 2-6)
 - Probe-Schema (`docs/probe-schema.md`) verabschieden

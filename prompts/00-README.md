@@ -19,7 +19,7 @@ Three design rules:
    them. This catches drift between agent runs.
 
 2. **Stop-conditions are explicit.** The agent must pause at named gates
-   (Legal-Gate, Plan-Immutability, multi-reviewer disagreement). No
+   (Plan-Immutability, multi-reviewer disagreement). No
    "best-guess" continuation past a stop-condition.
 
 3. **Harness-portable.** Prompts work across Claude Code, Codex CLI,
@@ -56,7 +56,7 @@ them swappable across harnesses.
 | **1. Role** | One sentence: who the agent is *for this task*. | Anchors the agent's perspective. NOT "you are a helpful assistant" — that is lazy. We say "you are progressing finding F-X into a reviewed addendum". |
 | **2. Context** | What repo, what files, what guardrails apply. | Cuts hallucination. Forces the agent to read the right files before acting. |
 | **3. Task** | The numbered workflow, in order. | Makes the work auditable. A reviewer can say "step 4 was skipped". |
-| **4. Constraints** | Hard rules, anti-rationalization rebuttals, stop-conditions. | Prevents the predictable failure modes (editing immutable files, fabricating reviewer verdicts, skipping Legal-Gate). |
+| **4. Constraints** | Hard rules, anti-rationalization rebuttals, stop-conditions. | Prevents the predictable failure modes (editing immutable files, fabricating reviewer verdicts). |
 | **5. Output format** | Exactly what the agent must produce, in what shape. | Reviewers can grade the result against a checklist. |
 
 A "self-check before submitting" checklist sits at the end of each prompt.

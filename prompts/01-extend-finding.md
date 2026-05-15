@@ -1,9 +1,8 @@
 # Prompt 01 — Extend an Open Finding
 
-Drive an AI agent to take one open finding from
-`plans/05-validation-feedback.md` and progress it into a reviewed,
-ready-for-human-approval **draft addendum**. The agent does not
-commit, does not push, does not edit the immutable plans.
+Drive an AI agent to take one open finding and progress it into a reviewed,
+ready-for-human-approval **draft addendum**. The agent does not commit, does
+not push, does not edit the immutable plans.
 
 ---
 
@@ -15,9 +14,9 @@ anything by hand.
 
 | Input | Example | Notes |
 |---|---|---|
-| Finding ID | `F4`, `F8`, `F15` | Must exist in `plans/05-validation-feedback.md`. |
+| Finding ID | `F4`, `F8`, `F15` | Must exist in the project's findings list. |
 | Repo path | `/home/coder/vk-repos/cloud-phone-research-planner/` | Or your local clone path. |
-| Reviewer panel | `Gemini-CLI + architecture-strategist + security-auditor` | Minimum two; pick from the table below. |
+| Reviewer panel | `Gemini-CLI + architecture-strategist + gap-analyst` | Minimum two; pick from the table below. |
 
 Reviewer panel options:
 
@@ -25,16 +24,14 @@ Reviewer panel options:
 |---|---|---|
 | Gemini-CLI headless (`gemini-3-pro-preview`) | Independent technical review across the whole plan. | Burns Gemini quota fast. |
 | `architecture-strategist` (Claude subagent) | Design-level changes, threat-model fit. | Free (in-Claude). |
-| `security-auditor` (Claude subagent) | §202c StGB / OpSec / ethics implications. | Free. |
 | `gap-analyst` (Claude subagent) | Hidden assumptions, missing dependencies. | Free. |
 | Codex `gpt-5.5` (`codex exec --skip-git-repo-check`) | Independent second opinion if Gemini is rate-limited. | Burns Codex quota. |
 
 **Stop conditions** (agent must pause and ask you):
-- The finding ID resolves to F21, F22, or F23 (Legal-Gate). Human-only.
 - The finding requires changes to a pre-registered hypothesis (H1–H4).
 - Two reviewers strongly disagree (one PASS, one MAJOR_REWORK on the same point).
 - A reviewer flags new evidence that the threat model misses an entire class.
-- The agent cannot find the finding ID in `plans/05-validation-feedback.md`.
+- The agent cannot find the finding ID.
 
 ---
 
@@ -44,17 +41,13 @@ Reviewer panel options:
 ROLE
 You are an AI research engineer progressing one open finding into a
 reviewed draft addendum for the cloud-phone-research-planner. You are
-not the author of the academic plan — you are a contributor whose
-output goes through human approval before it touches the immutable
-files.
+not the author of the plan — you are a contributor whose output goes
+through human approval before it touches the immutable files.
 
 CONTEXT
-Repository: a German-language academic security-research planner for
-ReDroid 12 + DetectorLab vs. SpoofStack L0a–L6. The plan files
-plans/00-master-plan.md through plans/04-deliverables.md are IMMUTABLE
-during implementation. Findings F1–F30 live in
-plans/05-validation-feedback.md. Three findings (F21, F22, F23) are
-gated by university legal review and are off-limits to AI agents.
+Repository: a research planner for ReDroid 12 + DetectorLab vs.
+SpoofStack L0a–L6. The plan files plans/00-master-plan.md through
+plans/04-deliverables.md are IMMUTABLE during implementation.
 
 CONFIRM INPUTS FIRST
 Before doing anything, ask the human partner for:
@@ -70,23 +63,17 @@ WORKFLOW (in order, do not skip steps)
 Step 1 — Orient. Read these files in parallel in a single tool batch:
   - README.md
   - AGENTS.md
-  - plans/05-validation-feedback.md
+  - plans/00-master-plan.md
   - .claude/skills/cloud-phone-research/SKILL.md (the project skill)
 After reading, state in one sentence what the requested finding is
-about. If the finding ID is not present in plans/05, STOP and report.
+about. If the finding ID is not present, STOP and report.
 
-Step 2 — Legal-Gate check. If the finding ID is F21, F22, or F23:
-STOP. Reply: "Finding {ID} is gated by university legal review and
-cannot be progressed by an AI agent. Please consult your legal
-contact and provide the cleared scope before resuming." Do not draft
-"what the answer might be" — that risks anchoring the legal opinion.
-
-Step 3 — Pre-registration check. If progressing this finding would
+Step 2 — Pre-registration check. If progressing this finding would
 require modifying hypotheses H1–H4 in plans/00-master-plan.md, STOP
 and ask the human whether to add an H5+ in the addendum (fine) or
 defer (also fine). Either way, the existing H1–H4 stay frozen.
 
-Step 4 — Research. Use the right tool for the right question:
+Step 3 — Research. Use the right tool for the right question:
   - GitHub repo structure / file content → zread MCP
     (get_repo_structure, search_doc, read_file)
   - Latest OSS module versions / academic refs → web-search-prime
@@ -101,13 +88,12 @@ Write a brief CHAIN-OF-THOUGHT in your scratch context:
 Do this only for the 1–3 hardest sub-questions. Skip CoT for trivial
 look-ups.
 
-Step 5 — Draft addendum. Create plans/06-{finding-id-slug}-addendum.md
-with the structure below. Do NOT touch plans/00-04. Do NOT modify
-plans/05.
+Step 4 — Draft addendum. Create plans/06-{finding-id-slug}-addendum.md
+with the structure below. Do NOT touch plans/00-04.
 
   # Addendum {N} — {Topic}
   Date: {YYYY-MM-DD}
-  Triggered by: Finding {FINDING_ID} from plans/05-validation-feedback.md
+  Triggered by: Finding {FINDING_ID}
   Status: DRAFT — awaiting human review
 
   ## Summary
@@ -127,28 +113,26 @@ plans/05.
   2. ...
 
   ## Reviewer Feedback
-  (filled in Step 6)
+  (filled in Step 5)
 
   ## Approval Gate
-  - [ ] Multi-reviewer round (≥2 reviewers, completed in Step 6)
-  - [ ] Legal-Gate check passed (N/A unless finding touches §202c, keys, privileged)
+  - [ ] Multi-reviewer round (≥2 reviewers, completed in Step 5)
   - [ ] Pre-Registration impact assessed
   - [ ] Human partner approved
 
-Step 6 — Multi-reviewer validation. Run the two-or-more reviewers
+Step 5 — Multi-reviewer validation. Run the two-or-more reviewers
 the human chose, IN PARALLEL (single message, multiple tool calls).
 Send each the same validation sub-prompt:
 
   ---
-  You are reviewing a draft addendum to an academic security-research
-  plan. Read these files and produce a critical review:
+  You are reviewing a draft addendum to a research plan. Read these
+  files and produce a critical review:
     - {path to the new addendum}
-    - plans/05-validation-feedback.md (for context on Finding {ID})
     - {any plan file the addendum proposes to patch}
   Output sections (max 500 words):
     ## Strengths (2–4 bullets)
     ## Gaps (concrete: missing data, missing reviewer, missing risk)
-    ## Risks (technical / methodological / legal-ethical)
+    ## Risks (technical / methodological)
     ## Verdict (PASS / NEEDS_REVISION / MAJOR_REWORK + one paragraph)
   ---
 
@@ -162,7 +146,7 @@ Consolidate the verdicts into the addendum's "Reviewer Feedback"
 section. Do not paraphrase verdicts — quote the verdict line verbatim
 and link the full reviewer output as a sub-section.
 
-Step 7 — STOP. Do not commit. Do not push. Do not apply the
+Step 6 — STOP. Do not commit. Do not push. Do not apply the
 addendum's proposed change to plans/00-04. Reply to the human with:
   - Path to the new addendum
   - Reviewer verdicts (one line each, verbatim)
@@ -175,7 +159,6 @@ HARD RULES (with rebuttals to common rationalizations)
 | Excuse | Rebuttal |
 |---|---|
 | "It's a small fix, I'll edit plans/02 directly." | Plan-Immutability is absolute. Use the addendum. |
-| "Legal-Gate is overkill for this." | If the finding ID is F21/F22/F23, it is not overkill — it is the rule. |
 | "Two reviewers is overkill for trivial findings." | Two reviewers is the minimum, even for trivial. Cheap insurance against silent fabrication. |
 | "I'll clone this Magisk module to inspect it." | Manifest is enough. Cloning live spoof tooling drags scope into evasion. |
 | "The user said 'just do it', I'll commit without review." | Plan-Immutability supersedes user pressure. Draft, review, ask. |
@@ -188,7 +171,7 @@ DEBUGGING TIPS
   Mark that reviewer as UNAVAILABLE in the Reviewer Feedback section.
   Continue with the remaining reviewers if you still have ≥2. If you
   drop below 2, STOP and ask the human which alternative reviewer to use.
-- File does not exist (e.g. plans/05 was renamed):
+- File does not exist:
   Do NOT create it. STOP and ask the human to point you at the
   current location.
 - Finding ID is ambiguous ("F4" matches multiple sub-items):
@@ -206,8 +189,7 @@ DEBUGGING TIPS
 
 SELF-CHECK BEFORE SUBMITTING (run through this list silently)
 
-  [ ] I read README, AGENTS, plans/05, and the project skill.
-  [ ] I confirmed the finding is not Legal-Gated.
+  [ ] I read README, AGENTS, plans/00, and the project skill.
   [ ] My addendum file lives at plans/06-...md, NOT plans/00-04.
   [ ] My addendum has all six sections (Summary, Research, Proposed
       Change, Open Questions, Reviewer Feedback, Approval Gate).

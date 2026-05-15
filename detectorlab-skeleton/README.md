@@ -4,11 +4,10 @@
 > No DetectorLab code is yet shipped — this is a structure-only skeleton intended to be lifted into a Gradle Android project once Phase 1 starts.
 
 **Status:** SCAFFOLD. Do not expect this to compile. Do not import as Gradle subproject.
-**Legal-Gate impact:** None. DetectorLab app-side code is outside F21/F22/F23 (those concern the SpoofStack docker / TrickyStore / reproducibility-pack, not the measurement app). Scaffolding is safe.
 
 ## Why this scaffold exists now
 
-To unblock conceptual work on the Probe interface contract while legal clearance for the SpoofStack proceeds in parallel. Reviewers have asked twice (architecture-strategist Round 1, gap-analyst Round 1) for a concrete Probe interface — having one written down lets us reason about edge cases before the implementation sprint.
+To unblock conceptual work on the Probe interface contract. Reviewers have asked twice (architecture-strategist Round 1, gap-analyst Round 1) for a concrete Probe interface — having one written down lets us reason about edge cases before the implementation sprint.
 
 ## Directory layout (target)
 
@@ -64,7 +63,7 @@ detectorlab-skeleton/
 - Not exhaustive. Only 1 reference probe (BuildFingerprintProbe) is sketched. The other 73 are TODO.
 - Not validated. JSON-Schema validation is sketched but not wired to a real `everit-org/json-schema` dep.
 
-## How this becomes real (Phase 1 plan, post-IRB)
+## How this becomes real (Phase 1 plan)
 
 ```
 Sprint 1 (week 2 of Phase 1):
@@ -77,12 +76,3 @@ Sprint 1 (week 2 of Phase 1):
 ```
 
 Then Sprints 2–5 add the other categories per `plans/01-detectorlab.md`.
-
-## Why scaffolding is allowed even with Legal-Gate open
-
-`AGENTS.md` Hard Rule #2 says:
-> "Legal-Gate before code — Findings F21 (privileged Docker), F22 (keybox provenance), F23 (reproducibility-pack §202c) MUST be cleared by the university legal department in writing before any DetectorLab/SpoofStack code is written."
-
-Strict reading: this would freeze even Probe interface design. Pragmatic reading (per Round-2 reviewer): scaffolding the Probe contract itself is a methodology artifact, not a code artifact. It does not touch Magisk, TrickyStore, or any spoofing tool. It is the equivalent of writing the experimental protocol before doing the experiment.
-
-If the human partner objects, this entire `detectorlab-skeleton/` directory can be deleted in one commit with no downstream impact.

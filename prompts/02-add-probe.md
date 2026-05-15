@@ -3,7 +3,7 @@
 Drive an AI agent to propose a brand-new detection probe (not in the
 existing 60 + 14-from-Round-1 inventory) and walk it through the full
 validation gauntlet — threat-model justification, overlap check,
-mitigation reachability, legal flag, multi-reviewer verdict.
+mitigation reachability, multi-reviewer verdict.
 
 The output is an addendum, never a direct edit to `probes/inventory.yml`.
 
@@ -20,7 +20,6 @@ The output is an addendum, never a direct edit to `probes/inventory.yml`.
 
 **Stop conditions:**
 - The probe requires live-platform interaction (TikTok, Instagram, etc.).
-- The probe requires capability that is contentious under DSGVO or §202c StGB.
 - An existing probe in `probes/inventory.yml` already covers this exact signal.
 - The probe's runtime exceeds 5 seconds without a strong justification.
 - Two reviewers strongly disagree on the threat-model layer.
@@ -57,12 +56,12 @@ that goes through human approval before the probe enters the live
 inventory. You are not authorised to edit probes/inventory.yml directly.
 
 CONTEXT
-Repository: a German-language academic security-research planner for
-ReDroid 12 + DetectorLab vs. SpoofStack L0a–L6. The probe inventory
-in probes/inventory.yml currently holds 60 base probes plus 14 added
-in Round-1 patches. Each probe has: id, name, layer, description,
+Repository: a research planner for ReDroid 12 + DetectorLab vs.
+SpoofStack L0a–L6. The probe inventory in probes/inventory.yml
+currently holds 60 base probes plus 14 added in Round-1 patches.
+Each probe has: id, name, layer, description,
 expected-detection-confidence (vanilla L0a vs. real Pixel 7),
-mitigation-layer (L1–L6), runtime-budget-ms, legal-notes.
+mitigation-layer (L1–L6), runtime-budget-ms.
 
 CONFIRM INPUTS FIRST
 Ask the human partner for:
@@ -115,17 +114,11 @@ Step 4 — Research the technical basis.
 Write each source with its provenance: URL + commit/version.
 Vague references ("according to a paper I recall…") are not allowed.
 
-Step 5 — Legal / DSGVO / §202c flag. Answer in writing:
-  - Does the probe collect data that could be considered personal
-    under DSGVO Art. 4(1)? (Touch pressure can be biometric.)
-  - Does the probe require capabilities that fall under §202c StGB
-    "Vorbereiten des Ausspähens und Abfangens von Daten"? (Reading
-    /proc/kmsg, kernel-pointer leaks.)
+Step 5 — Capability check. Answer in writing:
   - Does the probe require root, system, or signature-level
     permission on a real device? (Affects baseline measurement
     feasibility.)
-If any answer is yes, the probe is CONDITIONAL — flag it for the
-ethics review path in the addendum.
+If yes, the probe is CONDITIONAL — flag it in the addendum.
 
 Step 6 — Draft addendum at plans/06-new-probe-{slug}-addendum.md:
 
@@ -158,7 +151,6 @@ Step 6 — Draft addendum at plans/06-new-probe-{slug}-addendum.md:
       real-pixel-7: {0.0–1.0}
     mitigation-layer: {L1|L2|L3|L4|L5|L6|none}
     runtime-budget-ms: {<= 5000}
-    legal-notes: {DSGVO / §202c flags or "none"}
   ```
 
   ## Implementation Hint (Kotlin pseudocode)
@@ -169,7 +161,6 @@ Step 6 — Draft addendum at plans/06-new-probe-{slug}-addendum.md:
   ## Risks
   - False-positive risk: ...
   - Mitigation reachability: ...
-  - Legal: ...
 
   ## Open Questions for Human Partner
   1. ...
@@ -180,7 +171,6 @@ Step 6 — Draft addendum at plans/06-new-probe-{slug}-addendum.md:
   ## Approval Gate
   - [ ] ≥2 reviewers ran
   - [ ] Overlap check produced no total-overlap
-  - [ ] Legal/DSGVO flag resolved or escalated
   - [ ] Human partner approved
 
 Step 7 — Multi-reviewer validation. In parallel (single message,
@@ -196,7 +186,6 @@ multiple tool calls), run the chosen reviewers with this sub-prompt:
     ## Threat-model fit (does the layer assignment hold?)
     ## Overlap with existing probes (any P-IDs we missed?)
     ## Mitigation reachability (does L1–L6 close it cleanly?)
-    ## Legal / DSGVO concerns (specific articles or §§)
     ## Verdict (ACCEPT / REJECT / CONDITIONAL + one paragraph)
   ---
 
@@ -225,7 +214,6 @@ HARD RULES (with rebuttals)
 | "This probe is similar to P-23, I'll just bump it." | Never modify existing IDs. Append a new probe and document the delta. |
 | "Live-platform reachability would make the probe more realistic." | Out of scope. The probe must be measurable from inside DetectorLab without leaving the container. |
 | "Runtime is ~30 seconds but it's worth it." | >5 seconds requires explicit justification in the Risks section AND human approval before merge. |
-| "DSGVO does not apply to lab measurements." | Touch-pressure, gait, sensor noise can be biometric. Default to flagging; let the ethics reviewer decide. |
 | "I'll cite 'a recent paper' without the URL." | Vague provenance is fabrication-adjacent. URL + commit/version, or do not cite. |
 
 DEBUGGING TIPS
@@ -247,9 +235,6 @@ DEBUGGING TIPS
 - Reviewer fails (Gemini 429, Codex quota):
   Mark as UNAVAILABLE in the Reviewer Feedback. Continue with the
   remaining reviewers if you still have ≥2. Below 2, STOP.
-- The proposed probe touches keybox material or attestation keys:
-  STOP immediately. Escalate to the human. This is Legal-Gate
-  territory (F22-adjacent) regardless of the original finding ID.
 
 SELF-CHECK BEFORE SUBMITTING
 
@@ -257,7 +242,6 @@ SELF-CHECK BEFORE SUBMITTING
   [ ] Threat-model layer was justified, not asserted.
   [ ] Expected-confidence numbers cite a source or are marked
       "author estimate".
-  [ ] DSGVO / §202c flag answered yes/no for each.
   [ ] Runtime budget ≤ 5000 ms (or justified in Risks).
   [ ] Addendum lives at plans/06-...md, not in probes/inventory.yml.
   [ ] At least two reviewers ran; verdicts quoted verbatim.

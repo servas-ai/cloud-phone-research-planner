@@ -17,18 +17,18 @@
 
 **⚠️ DEPRECATED stub — DO NOT use as-is.**
 
-> Round-2.5 Finding F37 (security-auditor) flagged that `privileged: true` constitutes a host-root-escape from Magisk-rooted ReDroid. Use the F21-compliant configuration documented in `experiments/runner/SPEC.md` §4 (`container_lifecycle.py` injects `cap_drop:[ALL]` + `cap_add:[SYS_ADMIN]` narrowed scope + `seccomp:redroid-seccomp.json` + `no-new-privileges:true`). The stub below is kept as a historical record of what was originally proposed in Round-1; the orchestrator preflight will refuse to launch any container matching this stub.
+> Round-2.5 Finding F37 (security-auditor) flagged that `privileged: true` constitutes a host-root-escape from Magisk-rooted ReDroid. Use the hardened configuration documented in `experiments/runner/SPEC.md` §4 (`container_lifecycle.py` injects `cap_drop:[ALL]` + `cap_add:[SYS_ADMIN]` narrowed scope + `seccomp:redroid-seccomp.json` + `no-new-privileges:true`). The stub below is kept as a historical record of what was originally proposed in Round-1; the orchestrator preflight will refuse to launch any container matching this stub.
 
 **Original (deprecated, Round-1) docker-compose.yml stub:**
 ```yaml
-# DEPRECATED — see experiments/runner/SPEC.md §4 for the F21-compliant replacement.
+# DEPRECATED — see experiments/runner/SPEC.md §4 for the hardened replacement.
 services:
   redroid:
     image: redroid/redroid:12.0.0_64only-latest
     devices:
       - /dev/binder:/dev/binder
       - /dev/ashmem:/dev/ashmem
-    privileged: true   # ❌ REJECTED by container_lifecycle.py preflight (F21 hard-block)
+    privileged: true   # ❌ REJECTED by container_lifecycle.py preflight (hard-block)
     command:
       - androidboot.redroid_gpu_mode=host
       - androidboot.redroid_width=1080

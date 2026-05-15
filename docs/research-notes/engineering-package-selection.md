@@ -24,8 +24,7 @@ remain observable after each controlled lab configuration change.
 | Boundary | Engineering consequence |
 |---|---|
 | DetectorLab-only measurement | No external production-service clients are dependencies. |
-| Isolated university lab | Network probes use local lab endpoints or passive host-side observation. |
-| Legal-Gate F21/F22/F23 remains closed | No implementation or package selection for keybox handling, privileged container manifests, or sensitive reproducibility packs. |
+| Isolated lab | Network probes use local lab endpoints or passive host-side observation. |
 | Public repo must stay publishable | Track B stays manifest/spec-level until human gates approve concrete implementation. |
 | Plan immutability | This file is a research note; `plans/00-04` are not modified. |
 
@@ -72,7 +71,7 @@ remain observable after each controlled lab configuration change.
 
 | Phase | Track A: DetectorLab | Track B: lab stack under test | Shared outputs |
 |---|---|---|---|
-| 0. Gates and version lock | Freeze probe schema and package pins. | Keep implementation paused where F21/F22/F23 apply. | Approval log, OSF preregistration, version catalog, lockfile. |
+| 0. Gates and version lock | Freeze probe schema and package pins. | Manifest/spec-level only. | Version catalog, lockfile. |
 | 1. Minimal detector | Build Gradle Android app around existing Kotlin skeleton. Implement BuildFingerprint probe end-to-end. | Use only known-safe L0a-style baseline description or mock target. | Golden JSON report, host-side schema validation. |
 | 2. Probe expansion | Add probe categories in priority order: buildprop, root, emulator, identity, runtime, sensors, network. | Do not add mitigation modules in public repo unless explicitly cleared. | Probe coverage table and fixtures. |
 | 3. Runner MVP | Package Typer runner with manifest validation, ADB wrapper, report pull, JSON Schema validation, and atomic persistence. | Runner refuses unsafe Compose policy such as `privileged:true`. | Repeatable N-run execution against mock target. |
@@ -105,8 +104,8 @@ remain observable after each controlled lab configuration change.
 | Avoid | Why |
 |---|---|
 | External production-service SDKs or automation clients | Violates Scope-Lock and would change the project from measurement research into production-service testing. |
-| Keybox download/source packages | Legal-Gate F22 is human-only. |
-| Runtime spoofing module dependencies in public code | Legal-Gate and reproducibility-split risk. |
+| Keybox download/source packages | Human-only handling. |
+| Runtime spoofing module dependencies in public code | Reproducibility-split risk. |
 | Heavy Android DI/UI frameworks for MVP | DetectorLab is a measurement instrument; every extra framework adds failure surface without improving probes. |
 | On-device general JSON Schema engines | Host-side validation is simpler, auditable, and reproducible. |
 
@@ -152,4 +151,4 @@ The smallest useful engineering slice is:
 4. Add host-side Python schema validation with `jsonschema`.
 5. Add a runner dry-run mode that validates manifests and fake reports without starting ReDroid.
 
-This gets the project from "plan plus skeleton" to "compilable measurement instrument plus reproducible host validation" without entering any Legal-Gated Track B implementation.
+This gets the project from "plan plus skeleton" to "compilable measurement instrument plus reproducible host validation".

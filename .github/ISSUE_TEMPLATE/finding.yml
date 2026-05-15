@@ -31,7 +31,6 @@ body:
         - statistical-rigor
         - reproducibility
         - threat-model
-        - ethics-legal
         - tooling-orchestrator
         - operational
     validations:
@@ -55,6 +54,5 @@ body:
     attributes:
       label: Gates
       options:
-        - label: This finding does NOT touch §202c StGB / §259 StGB / EU 2021/821 grey areas (if it does, also tag `legal-gate`)
         - label: This finding does NOT require live-platform testing
         - label: I have read AGENTS.md and the Plan-Immutability rule

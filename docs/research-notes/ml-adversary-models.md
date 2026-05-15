@@ -111,8 +111,8 @@ Plus add to §"Vertrauensanker":
 ## 7. Open Questions for Human Partner
 
 1. Should H1–H4 be extended with H5: "SpoofStack L1–L6 detection-rate against L_AdvB ML classifier is monotonically lower than against L_AdvA"? (Re-registration cost: medium.)
-2. For L_AdvC evaluation, do we have ethical clearance to collect a small real-device sensor-trace baseline (e.g. n=5 lab phones, IRB-covered)? Without this we cannot train a representative L_AdvC adversary.
-3. Should we acknowledge server-side adversaries (§4) explicitly in `docs/ethics-and-scope.md` as a "deliberate research boundary" or only in `threat-model.md`?
+2. For L_AdvC evaluation, can we collect a small real-device sensor-trace baseline (e.g. n=5 lab phones)? Without this we cannot train a representative L_AdvC adversary.
+3. Should we acknowledge server-side adversaries (§4) explicitly in `threat-model.md` as a "deliberate research boundary"?
 4. Is the 3-level axis (A/B/C) sufficient, or do we want a fourth `L_AdvD` for federated-cross-tenant ML (Sift / LexisNexis network effect)?
 5. Will the lab build a reference "mini-classifier" (XGBoost on probe-vector) inside DetectorLab as a *measurement instrument* — or only export probe-vectors for offline analysis (safer scope-wise)?
 

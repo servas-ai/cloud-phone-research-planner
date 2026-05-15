@@ -5,18 +5,16 @@ message: >-
   please cite as below.
 type: software
 authors:
-  - name: "servas-ai (research lead, anonymised pending IRB clearance)"
-    affiliation: "German university (anonymised pending publication)"
+  - name: "servas-ai (research lead)"
 repository-code: "https://github.com/servas-ai/cloud-phone-research-planner"
 url: "https://github.com/servas-ai/cloud-phone-research-planner"
 abstract: >-
-  Academic research planner for empirical, layer-by-layer evaluation of Android
+  Research planner for empirical, layer-by-layer evaluation of Android
   container detection resistance. Two-track adversarial design: DetectorLab
   (Track A — measurement oracle) versus SpoofStack (Track B — ReDroid 12 + L0a–L6
   mitigation layers, subject under test). Scope strictly limited to the
-  self-developed DetectorLab; no live-platform testing. Plan-Immutability,
-  Multi-Reviewer-Validation, and Legal-Gate (§202c StGB / §259 StGB / EU 2021/821 /
-  DSGVO Art. 89) are first-class repository concerns.
+  self-developed DetectorLab; no live-platform testing. Plan-Immutability
+  and Multi-Reviewer-Validation are first-class repository concerns.
 keywords:
   - android-security
   - emulator-detection
@@ -25,7 +23,6 @@ keywords:
   - redroid
   - tee-attestation
   - threat-modeling
-  - academic-research
 license: Apache-2.0
 license-url: "https://www.apache.org/licenses/LICENSE-2.0"
 preferred-citation:
@@ -35,7 +32,3 @@ preferred-citation:
     - name: "servas-ai (research lead)"
   year: 2026
   status: "in preparation"
-  notes: >-
-    Target venues: USENIX Security, ACM CCS, NDSS, IEEE S&P, EuroS&P, WOOT,
-    DIMVA. Final venue selection and authorship to be finalised post-IRB
-    clearance and Round-2.5 multi-reviewer validation.
