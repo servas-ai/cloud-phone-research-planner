@@ -13,8 +13,7 @@ abstract: >-
   container detection resistance. Two-track adversarial design: DetectorLab
   (Track A — measurement oracle) versus SpoofStack (Track B — ReDroid 12 + L0a–L6
   mitigation layers, subject under test). Scope strictly limited to the
-  self-developed DetectorLab; no live-platform testing. Plan-Immutability
-  and Multi-Reviewer-Validation are first-class repository concerns.
+  self-developed DetectorLab. Multi-Reviewer-Validation is a repository concern.
 keywords:
   - android-security
   - emulator-detection

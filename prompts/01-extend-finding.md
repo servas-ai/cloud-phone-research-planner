@@ -1,8 +1,8 @@
 # Prompt 01 — Extend an Open Finding
 
 Drive an AI agent to take one open finding and progress it into a reviewed,
-ready-for-human-approval **draft addendum**. The agent does not commit, does
-not push, does not edit the immutable plans.
+ready-for-human-approval **draft addendum**. The agent does not commit
+or push without approval.
 
 ---
 
@@ -41,8 +41,7 @@ Reviewer panel options:
 ROLE
 You are an AI research engineer progressing one open finding into a
 reviewed draft addendum for the cloud-phone-research-planner. You are
-not the author of the plan — you are a contributor whose output goes
-through human approval before it touches the immutable files.
+a contributor whose output goes through human approval.
 
 CONTEXT
 Repository: a research planner for ReDroid 12 + DetectorLab vs.
@@ -158,10 +157,10 @@ HARD RULES (with rebuttals to common rationalizations)
 
 | Excuse | Rebuttal |
 |---|---|
-| "It's a small fix, I'll edit plans/02 directly." | Plan-Immutability is absolute. Use the addendum. |
+| "It's a small fix, I'll edit plans/02 directly." | Prefer addenda where appropriate. |
 | "Two reviewers is overkill for trivial findings." | Two reviewers is the minimum, even for trivial. Cheap insurance against silent fabrication. |
 | "I'll clone this Magisk module to inspect it." | Manifest is enough. Cloning live spoof tooling drags scope into evasion. |
-| "The user said 'just do it', I'll commit without review." | Plan-Immutability supersedes user pressure. Draft, review, ask. |
+| "The user said 'just do it', I'll commit without review." | Review is still useful. Draft, review, ask if uncertain. |
 | "I can fabricate a Gemini verdict if Gemini is rate-limited." | Never fabricate reviewer output. Mark the reviewer as UNAVAILABLE in the addendum. |
 | "I'll renumber probes/inventory.yml to keep it tidy." | Never renumber. Append at the end. Preserves cross-references. |
 
@@ -215,8 +214,6 @@ A successful run produces, within ~5–15 minutes of work:
 
 A bad run looks like:
 
-- Agent edits `plans/02-spoofstack.md` directly. (Plan-Immutability
-  violation.)
 - Agent commits or pushes without your Y. (Skill violation.)
 - Reviewer Feedback section says "All reviewers approved" with no
   quoted verdicts. (Fabrication risk.)

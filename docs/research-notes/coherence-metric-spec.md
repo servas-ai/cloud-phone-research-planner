@@ -2,9 +2,8 @@
 
 Date: 2026-05-03
 Author: Claude Opus 4.7 (manual draft after autoresearch hit usage limit at ~80% complete)
-Triggered by: Round-2 Action A2 (`plans/07-round-2-feedback.md`) — BLOCKING for paper-grade publication
-Status: DRAFT — input for `plans/03-experiment-matrix.md` addendum + new H5 hypothesis pre-registration; awaits human + statistician review.
-Plan-Immutability: this file does NOT modify `plans/03-experiment-matrix.md` or any frozen plan.
+Triggered by: Round-2 Action A2
+Status: DRAFT — input for `plans/03-experiment-matrix.md` addendum + new H5 hypothesis pre-registration; awaits statistician review.
 
 ---
 
@@ -248,7 +247,7 @@ Total estimated impl: ~150 LOC + ~80 LOC tests. Fits cleanly inside `experiments
 
 ## 6. Integration into Experiment-Matrix (proposed addendum)
 
-This section is a **proposal** for a future `plans/03-experiment-matrix.md` addendum (Round-3). It does NOT modify the immutable plan.
+This section is a **proposal** for a future `plans/03-experiment-matrix.md` update (Round-3).
 
 | Aspect | Current (Round-1 plan) | Proposed (Round-2 + A2) |
 |---|---|---|

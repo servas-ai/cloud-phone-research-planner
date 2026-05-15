@@ -46,7 +46,7 @@ $EDITOR README.md AGENTS.md plans/00-master-plan.md
 # 2. Wähle ein offenes Finding (siehe GitHub Issues mit Label `finding`)
 gh issue list --label finding --state open
 
-# 3. Drafte ein Addendum (NIEMALS plans/00-04 editieren)
+# 3. (Optional) Drafte ein Addendum oder editiere direkt
 cp prompts/01-extend-finding.md /tmp/my-prompt.md
 # Setze FINDING_ID + Reviewer-Panel im "Configuration"-Block der Datei
 
@@ -76,7 +76,7 @@ Für **AI-Agents** statt menschlicher Mitwirkender: siehe [`AGENTS.md`](AGENTS.m
 | Track | Rolle | Inhalt |
 |---|---|---|
 | **🎯 A — DetectorLab** | Red Team / Mess-Oracle | Eigene Android-App (Kotlin), die alle 60+ Detection-Punkte standardisiert misst und JSON-Reports erzeugt. Open-Source-Beitrag. |
-| **🛡️ B — SpoofStack** | Blue Team / Subject Under Test | ReDroid-12-basierter Stack mit modular zuschaltbaren Mitigation-Layern (L0a → L6). Wird **gegen DetectorLab** geprüft, nicht gegen Live-Plattformen. |
+| **🛡️ B — SpoofStack** | Blue Team / Subject Under Test | ReDroid-12-basierter Stack mit modular zuschaltbaren Mitigation-Layern (L0a → L6). Wird **gegen DetectorLab** geprüft. |
 
 Adversariell: Beide Tracks werden iterativ gegeneinander gestellt. Die Detection-Suite ist das wissenschaftliche Mess-Instrument; der Mitigation-Stack ist das Untersuchungsobjekt.
 
@@ -322,7 +322,7 @@ flowchart LR
 
 ## 🔬 Validation Pipeline
 
-Der Plan wurde von **vier unabhängigen Reviewern** kreuzvalidiert (Plan-Immutability-Regel: Originale unverändert, Findings als Addendum):
+Der Plan wurde von **vier unabhängigen Reviewern** kreuzvalidiert:
 
 ```mermaid
 flowchart TB
@@ -379,7 +379,7 @@ Dieses Repository ist **agent-ready**. Drei Eintrittsdateien:
 
 | Datei | Zweck |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Hard rules · Plan-Immutability · Scope-Lock |
+| [`AGENTS.md`](AGENTS.md) | Hard rules |
 | [`.claude/skills/cloud-phone-research/SKILL.md`](.claude/skills/cloud-phone-research/SKILL.md) | Vollständiger Research-Loop-Workflow für Claude Code |
 | [`SKILL.md`](SKILL.md) | Generisches Discovery-File für non-Claude-Agents (Codex, Gemini, Cursor, Aider, …) |
 

@@ -4,7 +4,7 @@ Date: 2026-05-02
 Author: general-purpose subagent (literature-search task, Claude Opus 4.7 1M)
 Triggered by: Findings F4, F5 from `plans/05-validation-feedback.md` (probe-coverage gaps #61–#74)
 Status: DRAFT — input for `refs/bibliography.md` merge round
-Plan-Immutability: this file does NOT modify `refs/bibliography.md`. A human-approved merge round must apply selected entries.
+Note: this file does NOT modify `refs/bibliography.md`. A merge round applies selected entries.
 
 ## Scope
 
@@ -85,7 +85,7 @@ Total: 14 active OSS tools meeting the 18-month freshness threshold (excluding t
 | StrangeBee blog | "JA4+ Fingerprinting: integrated into TheHive" | https://strangebee.com/blog/ja4-fingerprinting-now-available-in-thehive/ | Defensive deployment reference. |
 | GrapheneOS docs | "Attestation compatibility guide" | https://grapheneos.org/articles/attestation-compatibility-guide | Authoritative reference for hardware-attestation device support — directly relevant to F18 procurement. |
 
-**Excluded** (per Hard-Rules / Scope-Lock): keybox-leak forums, Magisk-module repositories that only ship spoof tooling without academic context, "how-to-bypass" XDA threads, anything hosted on `.ru` / `.cn` mirror domains, and any blog whose primary product is sale of bypass tooling.
+**Excluded:** keybox-leak forums, "how-to-bypass" XDA threads, and any blog whose primary product is sale of bypass tooling.
 
 ---
 

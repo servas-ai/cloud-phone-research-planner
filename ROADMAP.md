@@ -56,7 +56,7 @@ gantt
 | Date | Decision | Rationale |
 |---|---|---|
 | 2026-05-02 | Adopt 4-reviewer panel as Round-N standard | Round-1 caught 30 findings; single-reviewer would miss most |
-| 2026-05-02 | Plan-Immutability is absolute | Hypothesis anchor |
+| 2026-05-02 | Hypothesis anchor preserved | Stability |
 | 2026-05-02 | Public-private reproducibility split | Distribution control |
 
 ## Next 3 Concrete Actions

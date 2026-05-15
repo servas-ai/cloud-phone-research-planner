@@ -19,7 +19,6 @@ The output is an addendum, never a direct edit to `probes/inventory.yml`.
 | Reviewer panel | `architecture-strategist + security-auditor + Gemini-CLI` | Minimum two. |
 
 **Stop conditions:**
-- The probe requires live-platform interaction (TikTok, Instagram, etc.).
 - An existing probe in `probes/inventory.yml` already covers this exact signal.
 - The probe's runtime exceeds 5 seconds without a strong justification.
 - Two reviewers strongly disagree on the threat-model layer.

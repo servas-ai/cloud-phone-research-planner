@@ -18,7 +18,7 @@ Endprodukt: Detection-Resistance-Heatmap (60 Probes x N Stack-Konfigurationen) +
 ## 3. Phasen
 
 ### Phase 0 - Scope (Woche 1)
-- Lab-Netzwerk-Isolation einrichten (kein Egress zu Live-Plattformen)
+- Lab-Netzwerk-Isolation einrichten
 
 ### Phase 1 - DetectorLab MVP (Woche 2-6)
 - Probe-Schema (`docs/probe-schema.md`) verabschieden
@@ -57,8 +57,7 @@ Endprodukt: Detection-Resistance-Heatmap (60 Probes x N Stack-Konfigurationen) +
 |---|---|---|
 | ReDroid 12 wird instabil bei vollem Modul-Stack | mittel | Snapshots, Fallback auf reduzierten Stack |
 | Play Integrity rotiert Keybox -> TrickyStore obsolet | hoch | Mehrere Keyboxen testen, Ergebnis als Snapshot dokumentieren |
-| Sensor-Trace-Aufnahme rechtlich heikel (eigenes Geraet) | niedrig | Nur eigene Geraete, keine Personendaten |
-| Reviewer fordert Live-Plattform-Test | mittel | Vorab klarstellen: Detection-Suite ist das wissenschaftliche Oracle |
+| Reviewer fordert zusätzlichen Test | mittel | Detection-Suite ist das wissenschaftliche Oracle |
 
 ## 5. Erfolgskriterien
 

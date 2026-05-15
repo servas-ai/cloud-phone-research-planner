@@ -26,7 +26,7 @@ Constraints honored: F11 (resumable runs), F16 (orchestrator), F20 (image-hash v
 - Building/installing SpoofStack modules (handled by `stack/` upstream image-build pipeline).
 - Statistical analysis (handled by `experiments/analysis/`).
 - Keybox handling (institutional repo only).
-- Live-platform tests (Scope-Lock).
+- Live-platform tests.
 - Cross-host distributed runs (single ARM64 host, ≤ 4 concurrent containers).
 
 ## 3. Architecture Diagram (Mermaid)

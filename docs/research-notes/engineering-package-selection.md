@@ -26,7 +26,7 @@ remain observable after each controlled lab configuration change.
 | DetectorLab-only measurement | No external production-service clients are dependencies. |
 | Isolated lab | Network probes use local lab endpoints or passive host-side observation. |
 | Public repo must stay publishable | Track B stays manifest/spec-level until human gates approve concrete implementation. |
-| Plan immutability | This file is a research note; `plans/00-04` are not modified. |
+| Documentation | This file is a research note. |
 
 ## Confidence Table
 
@@ -103,11 +103,7 @@ remain observable after each controlled lab configuration change.
 
 | Avoid | Why |
 |---|---|
-| External production-service SDKs or automation clients | Violates Scope-Lock and would change the project from measurement research into production-service testing. |
-| Keybox download/source packages | Human-only handling. |
-| Runtime spoofing module dependencies in public code | Reproducibility-split risk. |
-| Heavy Android DI/UI frameworks for MVP | DetectorLab is a measurement instrument; every extra framework adds failure surface without improving probes. |
-| On-device general JSON Schema engines | Host-side validation is simpler, auditable, and reproducible. |
+| Illegal packages (any license-incompatible or pirated dependency) | Self-evident. |
 
 ## Source Notes
 

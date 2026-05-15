@@ -64,7 +64,7 @@ Vendors run a **second-stage server model** that on-device probes cannot influen
 - **Cross-tenant signal sharing** (Sift global model, LexisNexis Digital ID Network): fp seen on competitor's fraud-list.
 - **Spatio-temporal GNNs on session graphs** (ATLAS): production banking ATO.
 
-These require real-target deployment (impossible in measurement-only DetectorLab) — Scope-Lock would be violated. Treat as adversary that **strictly dominates** on-device-only spoofing.
+These require real-target deployment (out of scope for measurement-only DetectorLab). Treat as adversary that **strictly dominates** on-device-only spoofing.
 
 ## 5. Proposed Threat-Model Addition
 

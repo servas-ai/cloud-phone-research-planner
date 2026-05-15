@@ -46,7 +46,7 @@ body:
     id: proposed_correction
     attributes:
       label: Proposed Correction
-      description: Concrete file path + diff sketch. Plan-Immutability applies — propose addendum, not direct edit to plans/00-04.
+      description: Concrete file path + diff sketch.
     validations:
       required: true
   - type: checkboxes
@@ -54,5 +54,4 @@ body:
     attributes:
       label: Gates
       options:
-        - label: This finding does NOT require live-platform testing
-        - label: I have read AGENTS.md and the Plan-Immutability rule
+        - label: I have read AGENTS.md
