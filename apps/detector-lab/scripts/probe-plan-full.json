@@ -1,0 +1,191 @@
+[
+  {
+    "probe_id": "buildprop.fingerprint",
+    "probe_name": "BuildFingerprintProbe",
+    "category": "buildprop",
+    "layer": "L1",
+    "command": "getprop ro.build.fingerprint && getprop ro.build.display.id && getprop ro.build.version.security_patch",
+    "scoring": "regex_match",
+    "score_pattern": "userdebug|test-keys|generic|emu"
+  },
+  {
+    "probe_id": "buildprop.tags_and_type",
+    "probe_name": "BuildTagsAndTypeProbe",
+    "category": "buildprop",
+    "layer": "L1",
+    "command": "getprop ro.build.tags && getprop ro.build.type && getprop ro.product.model && getprop ro.product.brand && getprop ro.product.manufacturer",
+    "scoring": "regex_match",
+    "score_pattern": "test-keys|userdebug|generic|unknown"
+  },
+  {
+    "probe_id": "buildprop.model_brand_manufacturer",
+    "probe_name": "BuildModelBrandManufacturerProbe",
+    "category": "buildprop",
+    "layer": "L1",
+    "command": "getprop ro.product.model && getprop ro.product.brand && getprop ro.product.manufacturer && getprop ro.product.name && getprop ro.product.device",
+    "scoring": "regex_match",
+    "score_pattern": "generic|emu|sdk|emulator|AOSP"
+  },
+  {
+    "probe_id": "emulator.qemu_artifacts",
+    "probe_name": "QemuArtifactsProbe",
+    "category": "emulator",
+    "layer": "L1",
+    "command": "getprop ro.hardware && getprop ro.kernel.qemu && getprop ro.product.board && ls /dev/qemu_pipe 2>/dev/null && ls /dev/goldfish_pipe 2>/dev/null || true",
+    "scoring": "regex_match",
+    "score_pattern": "goldfish|ranchu|vbox|qemu|1"
+  },
+  {
+    "probe_id": "root.su_detection",
+    "probe_name": "SuDetectionProbe",
+    "category": "root",
+    "layer": "L4",
+    "command": "which su 2>/dev/null; ls /sbin/su 2>/dev/null; ls /system/su 2>/dev/null; pm list packages | grep -iE 'magisk|superuser|supersu|kingroot' 2>/dev/null || echo CLEAN",
+    "scoring": "negated_clean",
+    "score_pattern": "CLEAN"
+  },
+  {
+    "probe_id": "integrity.play_integrity",
+    "probe_name": "PlayIntegrityProbe",
+    "category": "integrity",
+    "layer": "L3",
+    "command": "am start -W -n app.attestation.auditor/.MainActivity 2>/dev/null; sleep 2; logcat -d -s PlayIntegrity:* 2>/dev/null | tail -20 || echo PLAY_INTEGRITY_UNAVAILABLE",
+    "scoring": "regex_match",
+    "score_pattern": "FAIL|UNAVAILABLE|MEETS_BASIC_INTEGRITY.*false|deviceRecognitionVerdict.*\\[\\]"
+  },
+  {
+    "probe_id": "integrity.keystore_attestation",
+    "probe_name": "KeystoreAttestationProbe",
+    "category": "integrity",
+    "layer": "L3",
+    "command": "getprop ro.hardware.keystore && getprop ro.vendor.build.security_patch && getprop keystore.strongbox 2>/dev/null || true",
+    "scoring": "regex_match",
+    "score_pattern": "software|default|none"
+  },
+  {
+    "probe_id": "runtime.xposed_lsposed",
+    "probe_name": "XposedLSPosedProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "cat /proc/self/maps | grep -E 'xposed|lsposed|EdXposed|yahfa|sandhook|whale' 2>/dev/null || echo CLEAN",
+    "scoring": "negated_clean",
+    "score_pattern": "CLEAN"
+  },
+  {
+    "probe_id": "runtime.installed_apps",
+    "probe_name": "InstalledAppsProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "pm list packages | grep -E 'magisk|lsposed|xposed|riru|zygisk|kernelsu|apatch' 2>/dev/null || echo CLEAN",
+    "scoring": "negated_clean",
+    "score_pattern": "CLEAN"
+  },
+  {
+    "probe_id": "runtime.native_prologue_hash",
+    "probe_name": "NativePrologueHashProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "dd if=/proc/self/maps bs=1 2>/dev/null | head -c 0; cat /proc/self/maps | grep -E 'libart\\.so|libdvm\\.so' | head -5 || true",
+    "scoring": "regex_match",
+    "score_pattern": "rwxp|r-xp.*deleted"
+  },
+  {
+    "probe_id": "integrity.prologue_got_hooks",
+    "probe_name": "PrologueGotHooksProbe",
+    "category": "integrity",
+    "layer": "L4",
+    "command": "cat /proc/self/maps | grep -E 'frida|gum-js|gadget|linjector|substrate|dobby|shadowhook|bytehook' 2>/dev/null || echo CLEAN",
+    "scoring": "negated_clean",
+    "score_pattern": "CLEAN"
+  },
+  {
+    "probe_id": "runtime.debugger_tracerpid",
+    "probe_name": "DebuggerTracerPidProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "cat /proc/self/status | grep -i tracerpid 2>/dev/null || echo TracerPid:0",
+    "scoring": "regex_match",
+    "score_pattern": "TracerPid:\\s*[^0]"
+  },
+  {
+    "probe_id": "root.freerrasp_verdict",
+    "probe_name": "FreeRaspVerdictProbe",
+    "category": "root",
+    "layer": "L4",
+    "command": "logcat -c 2>/dev/null; am start -W -n com.aheaditysolutions.securityapp/cz.talsec.android.security.rasp.FreeRASPActivity 2>/dev/null; sleep 3; logcat -d -t 50 2>/dev/null | grep -i 'talsec\\|freerasp\\|RASP\\|ThreatDetect' | tail -20 || echo FREERRASP_NOT_INSTALLED",
+    "scoring": "regex_match",
+    "score_pattern": "THREAT|root|hook|debug|emulator|FREERRASP_NOT_INSTALLED"
+  },
+  {
+    "probe_id": "integrity.pifd_verdict",
+    "probe_name": "PlayIntegrityFixDetectorVerdictProbe",
+    "category": "integrity",
+    "layer": "L3",
+    "command": "logcat -c 2>/dev/null; am start -W -n io.github.ir0nbyte.playintegrityfixdetector/.MainActivity 2>/dev/null; sleep 4; logcat -d -t 100 2>/dev/null | grep -iE 'PIFD|playintegrity|PIF|spoof|TrickyStore|fake_keybox|verdict|BASIC|DEVICE|STRONG' | tail -30 || echo PIFD_NOT_INSTALLED",
+    "scoring": "regex_match",
+    "score_pattern": "DETECTED|FAIL|SPOOF|fake|PIFD_NOT_INSTALLED"
+  },
+  {
+    "probe_id": "integrity.auditor_verdict",
+    "probe_name": "GrapheneOSAuditorVerdictProbe",
+    "category": "integrity",
+    "layer": "L3",
+    "command": "logcat -c 2>/dev/null; am start -W -n app.attestation.auditor/.AuditActivity 2>/dev/null; sleep 3; logcat -d -t 100 2>/dev/null | grep -iE 'auditor|attestation|verified|LOCKED|UNLOCKED|user|avb|strongbox' | tail -20 || echo AUDITOR_NOT_INSTALLED",
+    "scoring": "regex_match",
+    "score_pattern": "UNLOCKED|software|fail|error|AUDITOR_NOT_INSTALLED"
+  },
+  {
+    "probe_id": "runtime.frida_memory_maps",
+    "probe_name": "FridaMemoryMapsProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "cat /proc/self/maps | grep -E 'frida-agent|gum-js-loop|frida-gadget|linjector' 2>/dev/null; ls /data/local/tmp/frida* 2>/dev/null; ls /data/local/tmp/re.frida* 2>/dev/null || echo CLEAN",
+    "scoring": "negated_clean",
+    "score_pattern": "CLEAN"
+  },
+  {
+    "probe_id": "env.location_mock",
+    "probe_name": "LocationMockProbe",
+    "category": "env",
+    "layer": "L5",
+    "command": "settings get secure mock_location 2>/dev/null || dumpsys location 2>/dev/null | grep -i mock | head -5 || echo CLEAN",
+    "scoring": "regex_match",
+    "score_pattern": "^1$|mock.*enabled|isMock.*true"
+  },
+  {
+    "probe_id": "env.screen_lock",
+    "probe_name": "ScreenLockProbe",
+    "category": "env",
+    "layer": "L5",
+    "command": "dumpsys window 2>/dev/null | grep -iE 'mLockScreenShown|KeyguardOccluded|lockTask' | head -5 || settings get secure lockscreen.disabled 2>/dev/null || echo UNKNOWN",
+    "scoring": "regex_match",
+    "score_pattern": "mLockScreenShown=false|lockscreen.disabled=1"
+  },
+  {
+    "probe_id": "env.wifi_security_type",
+    "probe_name": "WifiSecurityTypeProbe",
+    "category": "env",
+    "layer": "L5",
+    "command": "dumpsys wifi 2>/dev/null | grep -iE 'SecurityType|encryption|KeyMgmt|OPEN|WEP' | head -10 || echo UNKNOWN",
+    "scoring": "regex_match",
+    "score_pattern": "NONE|OPEN|WEP"
+  },
+  {
+    "probe_id": "runtime.automation_tools",
+    "probe_name": "AutomationToolsProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "settings get global development_settings_enabled 2>/dev/null; getprop init.svc.adbd 2>/dev/null; dumpsys accessibility 2>/dev/null | grep -iE 'appium|uiautomator|monkeyrunner' | head -5 || echo CLEAN",
+    "scoring": "regex_match",
+    "score_pattern": "^1$|running|appium|uiautomator"
+  },
+  {
+    "probe_id": "runtime.screen_recording",
+    "probe_name": "ScreenRecordingProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "dumpsys media_projection 2>/dev/null | grep -iE 'recording|active|token' | head -5 || echo CLEAN",
+    "scoring": "regex_match",
+    "score_pattern": "active|recording|granted"
+  }
+]
