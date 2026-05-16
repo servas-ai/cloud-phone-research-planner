@@ -1,0 +1,26 @@
+{
+  "id": "integrity.prologue_got_hooks",
+  "category": "integrity",
+  "severity": "critical",
+  "confidence": "strong",
+  "value": 1.0,
+  "evidence": [
+    { "key": "rwxp_total", "value": 4, "expected": 0 },
+    { "key": "rwxp_jit_cache_like", "value": 1 },
+    { "key": "rwxp_unexplained", "value": 3, "expected": 0 },
+    { "key": "got_escape_total", "value": 5, "expected": 0 },
+    { "key": "rwxp_segment_0", "value": "7f8a0c200000-7f8a0c204000 rwxp [anon:libxposed_trampoline]" },
+    { "key": "got_escape_0", "value": "libart.so!_ZN3art3JNI13NewLocalFrameEPNS_6ThreadEi->(anonymous)" },
+    { "key": "got_escape_2", "value": "libc.so!open->libxposed_trampoline.so" }
+  ],
+  "ts": "2026-05-15T14:39:55Z",
+  "host_meta": {
+    "device_label": "redroid-12-xposed-003",
+    "app_version": "0.1.0",
+    "android_sdk": 32,
+    "abi": "x86_64"
+  },
+  "runtime_ms": 246,
+  "failed": false,
+  "failure_reason": null
+}

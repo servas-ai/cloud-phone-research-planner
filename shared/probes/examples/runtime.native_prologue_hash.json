@@ -1,0 +1,25 @@
+{
+  "id": "runtime.native_prologue_hash",
+  "category": "runtime",
+  "severity": "critical",
+  "confidence": "strong",
+  "value": 1.0,
+  "evidence": [
+    { "key": "native_records_total", "value": 4218 },
+    { "key": "prologues_checked", "value": 487 },
+    { "key": "mismatches_total", "value": 12, "expected": 0 },
+    { "key": "libs_with_baseline", "value": "libart.so,libc.so" },
+    { "key": "libs_missing_baseline", "value": "libssl.so,libcrypto.so" },
+    { "key": "mismatch_0", "value": "libart.so!_ZN3art9ArtMethod6InvokeEPNS_6ThreadEPjjPNS_6JValueEPKc=4f7d2a8b9c1e0d4f" }
+  ],
+  "ts": "2026-05-15T14:31:08Z",
+  "host_meta": {
+    "device_label": "redroid-12-frida-hooked-002",
+    "app_version": "0.1.0",
+    "android_sdk": 32,
+    "abi": "x86_64"
+  },
+  "runtime_ms": 1842,
+  "failed": false,
+  "failure_reason": null
+}

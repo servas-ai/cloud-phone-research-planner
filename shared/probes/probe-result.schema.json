@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://detectorlab.example/schema/probe-result/v2.json",
+  "title": "ProbeResult v2",
+  "description": "Single probe-result record (Draft 2020-12). Replaces per-probe fields in the v1 batch report.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "category", "severity", "confidence", "value", "evidence", "ts", "host_meta"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*\\.[a-z][a-z0-9_]*$",
+      "description": "Stable dotted probe identifier, e.g. runtime.debugger_tracerpid."
+    },
+    "category": {
+      "enum": ["buildprop", "integrity", "root", "emulator", "network", "identity", "runtime", "sensors", "ui", "env"],
+      "description": "Probe category from inventory."
+    },
+    "severity": {
+      "enum": ["critical", "high", "medium", "low", "trace"],
+      "description": "Risk severity from probe inventory."
+    },
+    "confidence": {
+      "enum": ["none", "weak", "strong"],
+      "description": "Probe self-reported confidence in the value. none=0, weak=low, strong=high."
+    },
+    "value": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Detection score: 0.0=clean, 1.0=certain-detected."
+    },
+    "evidence": {
+      "type": "array",
+      "description": "Structured evidence trail. May be empty.",
+      "items": { "$ref": "#/$defs/EvidenceItem" }
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of probe execution, e.g. 2026-05-15T14:22:31Z."
+    },
+    "host_meta": {
+      "$ref": "#/$defs/HostMeta"
+    },
+    "runtime_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock probe duration in milliseconds."
+    },
+    "failed": {
+      "type": "boolean",
+      "description": "True if probe execution failed (value and evidence are unreliable)."
+    },
+    "failure_reason": {
+      "type": ["string", "null"],
+      "maxLength": 1024,
+      "description": "Non-null only when failed=true."
+    }
+  },
+  "$defs": {
+    "EvidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Evidence key / label."
+        },
+        "value": {
+          "type": ["string", "number", "boolean", "null"],
+          "description": "Observed value."
+        },
+        "expected": {
+          "type": ["string", "number", "boolean", "null"],
+          "description": "Expected baseline value, if applicable."
+        }
+      }
+    },
+    "HostMeta": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Device / host identification. All fields optional but at least one should be present.",
+      "properties": {
+        "device_label": {
+          "type": "string",
+          "description": "Human-readable device label, e.g. pixel-7-baseline-001."
+        },
+        "app_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semver of the detector-lab APK."
+        },
+        "android_sdk": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Android SDK level."
+        },
+        "abi": {
+          "type": "string",
+          "description": "Primary ABI, e.g. arm64-v8a."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "runtime.debugger_tracerpid",
+  "category": "runtime",
+  "severity": "high",
+  "confidence": "strong",
+  "value": 0.0,
+  "evidence": [
+    { "key": "max_tracer_pid", "value": 0, "expected": 0 },
+    { "key": "samples_taken", "value": 30, "expected": 30 },
+    { "key": "samples_failed", "value": 0, "expected": 0 }
+  ],
+  "ts": "2026-05-15T14:22:31Z",
+  "host_meta": {
+    "device_label": "pixel-7-baseline-001",
+    "app_version": "0.1.0",
+    "android_sdk": 33,
+    "abi": "arm64-v8a"
+  },
+  "runtime_ms": 3012,
+  "failed": false,
+  "failure_reason": null
+}
