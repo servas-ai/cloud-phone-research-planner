@@ -29,6 +29,17 @@ interface ProbeContext {
      * around `android.net.wifi.WifiManager`.
      */
     fun queryWifiManager(): WifiManagerView = UnknownWifiManagerView
+
+    /**
+     * Default returns the "unknown" view so existing fakes that predate this
+     * method continue to compile. Production impls override with a wrapper
+     * around `android.media.projection.MediaProjectionManager` plus the
+     * `WindowManager.addScreenRecordingCallback` (API 35+) and
+     * `Window.addScreenCaptureCallback` (API 34+) registrations performed at
+     * application start.
+     */
+    fun queryMediaProjectionManager(): MediaProjectionManagerView =
+        UnknownMediaProjectionManagerView
 }
 
 /** Conservative default: claims sdkInt=0 and answers `null` for every probe. */
@@ -170,4 +181,60 @@ object UnknownWifiManagerView : WifiManagerView {
     override fun hasWifiAccessPermission(): Boolean = false
     override fun currentNetworkSecurityType(): WifiSecurityRead =
         WifiSecurityRead(WifiSecurityType.UNAVAILABLE, "default-stub")
+}
+
+/**
+ * Read-only view of the screen-capture / screen-recording subsystem.
+ *
+ * The Android platform exposes two distinct callbacks for capture detection:
+ *
+ *   • `Window.OnScreenCaptureCallback` — API 34+ (Android 14, DETECT_SCREEN_CAPTURE
+ *     permission). Fires once when a screenshot is taken of an Activity window
+ *     registered via `Window.addScreenCaptureCallback`. In this view we call
+ *     this signal `screenCaptureCallback` and gate it on `sdkInt() >= 34`.
+ *
+ *   • `WindowManager.ScreenRecordingCallback` — API 35+ (Android 15,
+ *     DETECT_SCREEN_RECORDING permission). Fires whenever a MediaProjection
+ *     session that includes any window of the registering UID transitions
+ *     between visible and not-visible. In this view we call this signal
+ *     `mediaProjectionFrameCapture` and gate it on `sdkInt() >= 35`. This is
+ *     the canonical "MediaProjection session is live" oracle from API 35
+ *     onward.
+ *
+ * The naming inside this view follows the issue acceptance text
+ * (`MediaProjectionManager` callback + `Window.OnFrameCaptureListener`)
+ * rather than the precise Android class names so the contract reads against
+ * CLO-8 verbatim; the production wrapper translates these to the real
+ * platform classes.
+ *
+ * Implementations MUST return `null` from the `is*` queries when the answer
+ * is unknown (callbacks have not yet been registered, system service threw,
+ * or the API level does not support the signal). The probe treats `null` as
+ * "no signal" rather than "false".
+ */
+interface MediaProjectionManagerView {
+    /** Android `Build.VERSION.SDK_INT` — gates API-34 vs API-35 signal paths. */
+    fun sdkInt(): Int
+
+    /**
+     * `Window.OnScreenCaptureCallback` (API 34+) — true iff a screenshot
+     * capture event has been observed since the last reset. Returns `null`
+     * on API <34, or when the callback has not been registered.
+     */
+    fun isScreenCaptureCallbackActive(): Boolean?
+
+    /**
+     * `WindowManager.ScreenRecordingCallback` (API 35+) — true iff a
+     * MediaProjection screen-recording session is currently capturing any
+     * window of the registering UID. Returns `null` on API <35, or when the
+     * callback has not been registered.
+     */
+    fun isMediaProjectionFrameCaptureActive(): Boolean?
+}
+
+/** Conservative default: pre-A14, no callbacks registered. */
+object UnknownMediaProjectionManagerView : MediaProjectionManagerView {
+    override fun sdkInt(): Int = 0
+    override fun isScreenCaptureCallbackActive(): Boolean? = null
+    override fun isMediaProjectionFrameCaptureActive(): Boolean? = null
 }
