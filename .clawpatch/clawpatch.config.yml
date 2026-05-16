@@ -1,0 +1,123 @@
+# Clawpatch repo configuration — cloud-phone-research-planner
+#
+# Active config consumed by `tools/llmjudge.py` and downstream Paperclip
+# routines. Source spec: docs/super-action/clawpatch/clawpatch-claude-adapter.md
+# Codex-free environment — uses Plan B2 (Claude shim) provider exclusively.
+
+clawpatch:
+  schemaVersion: 1
+  stateDir: .clawpatch
+
+  include:
+    - "**/*"
+  exclude:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "target/**"
+    - ".build/**"
+    - ".gradle/**"
+    - "**/build/intermediates/**"
+    - "**/build/outputs/**"
+    - ".git/**"
+    - ".clawpatch/**"
+    - ".paperclip/state/**"
+    - "vendor/**"
+    - "third_party/**"
+    - "agents/detection/detector-lab/app/libs/**"
+    - "results/runs/**"
+    - "results/aggregate/**"
+    - "results/artifacts/**"
+    - "**/*.apk"
+    - "**/*.so"
+    - "**/*.png"
+    - "**/*.svg"
+    - "**/*.pgc"
+    - "**/journal.sqlite"
+    - ".env"
+    - ".env.*"
+    - "**/*.pem"
+    - "**/*.key"
+
+  # Provider — Plan B2 Claude shim. Codex is forbidden by user policy.
+  provider:
+    name: llmjudge
+    command: "python3 tools/llmjudge.py"
+    model: claude-sonnet-4-6
+
+  commands:
+    typecheck: "pnpm -w run typecheck"
+    lint: "pnpm -w run lint && ./gradlew lint"
+    format: null
+    test: "pnpm -w test && ./gradlew test && pytest agents/orchestrator/tests/"
+
+  review:
+    maxContextFiles: 24
+    maxOwnedFiles: 12
+    maxFindingsPerFeature: 10
+    minConfidenceToFix: medium
+
+  git:
+    requireCleanWorktreeForFix: true
+    commit: false
+    openPr: false
+
+# ---------------------------------------------------------------------------
+# Project-specific policy (consumed by Paperclip routines + L1 hook).
+# ---------------------------------------------------------------------------
+policy:
+  categories:
+    security:        { block_at: high,     confidence_floor: medium, route_to: ralph-security }
+    data-loss:       { block_at: high,     confidence_floor: medium, route_to: ralph-security }
+    bug:             { block_at: critical, confidence_floor: high,   route_to: ralph-coder }
+    concurrency:     { block_at: critical, confidence_floor: high,   route_to: ralph-coder }
+    api-contract:    { block_at: high,     confidence_floor: high,   route_to: ralph-reviewer }
+    performance:     { block_at: critical, confidence_floor: high,   route_to: ralph-coder }
+    test-gap:        { block_at: critical, confidence_floor: high,   route_to: ralph-tester }
+    docs-gap:        { block_at: critical, confidence_floor: high,   route_to: ralph-reviewer }
+    build-release:   { block_at: critical, confidence_floor: high,   route_to: ralph-coder }
+    maintainability: { block_at: critical, confidence_floor: high,   route_to: ralph-reviewer }
+
+  auto_fix:
+    enabled: false
+    min_confidence: high
+    allow_categories:
+      - bug
+      - performance
+      - maintainability
+      - docs-gap
+    deny_paths:
+      - "agents/**/agent.yaml"
+      - ".paperclip/**"
+      - ".git-hooks/**"
+      - "shared/threat-model.md"
+      - "shared/probe-schema.md"
+
+  suppressions:
+    - { category: docs-gap, path: "docs/super-action/**", reason: "design docs, not code" }
+    - { category: test-gap, path: "shared/**",            reason: "policy docs, no tests by design" }
+    - { category: maintainability, path: "**/*.tmpl",     reason: "templates hold placeholders" }
+
+  budgets:
+    pre_commit_seconds: 25
+    pre_push_seconds: 90
+    routine_seconds: 600
+
+  quality_gate:
+    lock_file: .paperclip/state/quality-gate.lock
+    open_findings_file: .paperclip/state/quality-gate.open-findings.json
+    pending_buildcommits_dir: .paperclip/state/quality-gate.pending-buildcommits
+    cleared_by_label: quality-gate-cleared
+    # Engaging severity levels — findings at these severities enter the sticky
+    # open-set and block T2 matrix-driver dispatch until explicitly cleared.
+    engaging_severities: [critical, high]
+    engaging_confidence_floor: medium
+    # Path (b) clearance: BuildCommit JSON must carry addresses_finding_id
+    # matching the open finding AND acceptance_cmd_result.exit_code == 0.
+    buildcommit_clearance:
+      schema_ref: .paperclip/contracts/buildcommit.schema.json
+      required_field: addresses_finding_id
+      exit_code_field: acceptance_cmd_result.exit_code
+    # Legacy field retained for backwards compat — effective threshold is
+    # controlled by engaging_severities above.
+    max_open_critical_findings: 0

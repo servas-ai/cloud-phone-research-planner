@@ -1,0 +1,415 @@
+# Paperclip routine — quality-gate
+#
+# Layer 3 of the Clawpatch 5-layer integration. Wakes every 15 minutes plus
+# on issue_completed events from Detection/Stability so we re-review
+# autonomously-landed code within one heartbeat of it being committed.
+#
+# Path on install: .paperclip/routines/quality-gate.yml
+# Wired from:      paperclip-config.v2026.5.json (add to the `routines` array)
+#                  agent.orchestrator.v2026.5.yaml (add to spec.routines)
+#
+# Provider fallback: if `clawpatch doctor` is non-zero, the routine invokes
+# tools/llmjudge.py (Plan B2 — Claude Sonnet 4.6 judge) with the same JSON
+# schema so the rest of the chain is unchanged. See CLAWPATCH-RESEARCH.md §6.
+#
+# CLO-111 ratchet: once a critical/high finding enters the open-set it stays
+# there until explicitly cleared via path (a) or (b). The lock is NEVER
+# removed simply because a later report happens to be empty.
+
+apiVersion: paperclip/v2026.5
+kind: Routine
+metadata:
+  id: quality-gate
+  name: Clawpatch Quality Gate
+  description: |
+    Re-reviews autonomously-landed code every 15 minutes (and on
+    issue_completed events). Posts findings to the parent matrix-cell
+    issue, opens an escalation issue on critical/high findings, and
+    maintains .paperclip/state/quality-gate.lock (consumed by the
+    orchestrator matrix-driver) until all open critical/high findings
+    are cleared via label (path a) or BuildCommit reference (path b).
+    Lock is sticky: an empty subsequent report does NOT clear it.
+
+spec:
+  agent: orchestrator
+  enabled: true
+
+  schedule:
+    cron: "*/15 * * * *"
+    timezone: Europe/Berlin
+
+  triggers:
+    - event: issue_completed
+      filter:
+        assignee_in: [detection, stability]
+    - event: blocker_resolved
+
+  concurrency_policy: skip
+  max_runtime_seconds: 600
+  catch_up_policy: skip_missed
+
+  inputs:
+    since_ref: "HEAD~10"
+    report_dir: ".clawpatch/reports/auto"
+    lock_file: ".paperclip/state/quality-gate.lock"
+    open_findings_file: ".paperclip/state/quality-gate.open-findings.json"
+    pending_buildcommits_dir: ".paperclip/state/quality-gate.pending-buildcommits"
+    audit_log: ".paperclip/audit/clawpatch-runs.jsonl"
+    config_path: ".clawpatch/clawpatch.config.yml"
+
+  budget:
+    monthly_usd_cap_share_from_orchestrator: 60
+    warn_at_pct: [80, 90]
+
+  steps:
+    - id: 01-precheck
+      kind: bash
+      script: |
+        set -euo pipefail
+        umask 077
+        mkdir -p "${INPUTS_REPORT_DIR}" \
+                 "$(dirname "${INPUTS_AUDIT_LOG}")" \
+                 "$(dirname "${INPUTS_OPEN_FINDINGS_FILE}")" \
+                 "${INPUTS_PENDING_BUILDCOMMITS_DIR}"
+
+        # Initialise open-findings file if absent.
+        if [ ! -f "${INPUTS_OPEN_FINDINGS_FILE}" ]; then
+          echo '{"schemaVersion":1,"findings":[]}' > "${INPUTS_OPEN_FINDINGS_FILE}"
+        fi
+
+        # Skip the tick if no new commits in the last 30 minutes — saves $.
+        if [ -z "$(git log --since='30 minutes ago' --pretty=%H)" ]; then
+          # Even with no new commits, still run clearance check (steps 04b+05)
+          # in case an operator applied the quality-gate-cleared label offline.
+          echo "quality-gate: no new commits; running clearance check only."
+          echo "SKIP_REVIEW=1" > .paperclip/state/quality-gate.skip-review
+          exit 0
+        fi
+        rm -f .paperclip/state/quality-gate.skip-review
+
+        # Provider liveness.
+        if ! timeout 5s clawpatch doctor --json >/dev/null 2>&1; then
+          echo "quality-gate: clawpatch doctor failed; falling back to llmjudge."
+          export QUALITY_GATE_PROVIDER=llmjudge
+        else
+          export QUALITY_GATE_PROVIDER=clawpatch
+        fi
+        echo "${QUALITY_GATE_PROVIDER}" > .paperclip/state/quality-gate.provider
+
+    - id: 02-map
+      kind: bash
+      script: |
+        set -euo pipefail
+        [ -f .paperclip/state/quality-gate.skip-review ] && exit 0
+        timeout 30s clawpatch map --config "${INPUTS_CONFIG_PATH}" --json >/dev/null 2>&1 || true
+
+    - id: 03-review
+      kind: bash
+      timeout_seconds: 540
+      script: |
+        set -euo pipefail
+        [ -f .paperclip/state/quality-gate.skip-review ] && exit 0
+        RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+        OUT="${INPUTS_REPORT_DIR}/${RUN_ID}.json"
+        PROVIDER="$(cat .paperclip/state/quality-gate.provider)"
+
+        if [ "${PROVIDER}" = "clawpatch" ]; then
+          clawpatch review \
+            --since "${INPUTS_SINCE_REF}" \
+            --jobs 4 \
+            --json \
+            --output "${OUT}" \
+            --config "${INPUTS_CONFIG_PATH}"
+        else
+          python3 tools/llmjudge.py \
+            --since "${INPUTS_SINCE_REF}" \
+            --schema clawpatch \
+            --output "${OUT}"
+        fi
+        echo "${OUT}" > .paperclip/state/quality-gate.last-report
+
+    - id: 04-accumulate
+      kind: bash
+      script: |
+        set -euo pipefail
+        # Merge new report's critical/high findings into the persisted open-set.
+        # A finding is added if:
+        #   severity in {critical, high} AND confidence != low
+        #   OR category == security AND confidence != low AND severity != low
+        # Findings already in the open-set are NOT duplicated.
+        # The open-set is NEVER shrunk here — only in step 04b.
+
+        [ -f .paperclip/state/quality-gate.skip-review ] && exit 0
+
+        REPORT="$(cat .paperclip/state/quality-gate.last-report 2>/dev/null || echo '')"
+        [ -z "${REPORT}" ] || [ ! -s "${REPORT}" ] && exit 0
+
+        COMMIT_SHA="$(git rev-parse HEAD)"
+        NOW="$(date -u +%FT%TZ)"
+
+        # Extract engaging finding IDs from the new report.
+        NEW_IDS="$(jq -r '
+          .findings[]?
+          | select(
+              ( (.severity == "critical" or .severity == "high") and .confidence != "low" )
+              or ( .category == "security" and .confidence != "low" and .severity != "low" )
+            )
+          | .findingId
+        ' "${REPORT}")"
+
+        if [ -z "${NEW_IDS}" ]; then
+          echo "quality-gate: no new engaging findings in this report."
+          exit 0
+        fi
+
+        # For each new engaging finding, upsert into open-findings.json.
+        while IFS= read -r FID; do
+          [ -z "${FID}" ] && continue
+
+          # Skip if already tracked (any status).
+          ALREADY="$(jq -r --arg fid "${FID}" '
+            .findings[] | select(.findingId == $fid) | .findingId
+          ' "${INPUTS_OPEN_FINDINGS_FILE}")"
+          [ -n "${ALREADY}" ] && continue
+
+          # Extract finding metadata.
+          FINDING_META="$(jq -c --arg fid "${FID}" '
+            .findings[] | select(.findingId == $fid) |
+            {findingId, severity, category, confidence, title}
+          ' "${REPORT}")"
+
+          # Append to open-findings.json.
+          jq --argjson meta "${FINDING_META}" \
+             --arg sha "${COMMIT_SHA}" \
+             --arg ts "${NOW}" \
+            '.findings += [$meta + {
+              introducedAtCommit: $sha,
+              introducedAt: $ts,
+              status: "open",
+              clearedAt: null,
+              clearedAtCommit: null,
+              clearedAtIssue: null
+            }]' "${INPUTS_OPEN_FINDINGS_FILE}" > /tmp/qg-open-findings.tmp
+          mv /tmp/qg-open-findings.tmp "${INPUTS_OPEN_FINDINGS_FILE}"
+
+          echo "quality-gate: tracked new open finding ${FID}."
+
+          # Open one escalation issue per new critical/high finding.
+          BODYFILE="$(mktemp)"
+          jq -r --arg fid "${FID}" '
+            .findings[] | select(.findingId == $fid)
+            | "## Clawpatch finding\n\n"
+              + "- **id**: \(.findingId)\n"
+              + "- **category**: \(.category)\n"
+              + "- **severity**: \(.severity)\n"
+              + "- **confidence**: \(.confidence)\n"
+              + "- **feature**: \(.featureId // "unknown")\n\n"
+              + "### Reasoning\n\(.reasoning // "n/a")\n\n"
+              + "### Recommendation\n\(.recommendation // "n/a")\n\n"
+              + "### Evidence\n```json\n\(.evidence | tojson)\n```\n\n"
+              + "### Clearing this finding\n"
+              + "**Path (a)** — operator applies label `quality-gate-cleared` to the parent issue.\n"
+              + "**Path (b)** — a later commit emits a BuildCommit with "
+              + "`addresses_finding_id: \"\(.findingId)\"` and `acceptance_cmd_result.exit_code: 0`.\n\n"
+              + "### Next\n"
+              + "- `clawpatch show --finding \(.findingId)`\n"
+              + "- `clawpatch fix --finding \(.findingId)` *(if high-confidence)*\n"
+          ' "${REPORT}" > "${BODYFILE}"
+
+          SEV="$(jq -r --arg fid "${FID}" '.findings[] | select(.findingId == $fid) | .severity' "${REPORT}")"
+          CAT="$(jq -r --arg fid "${FID}" '.findings[] | select(.findingId == $fid) | .category' "${REPORT}")"
+          TITLE="$(jq -r --arg fid "${FID}" '.findings[] | select(.findingId == $fid) | .title' "${REPORT}")"
+          ASSIGNEE="ralph-coder"
+          case "${CAT}" in
+            security|data-loss) ASSIGNEE="ralph-security" ;;
+            test-gap)           ASSIGNEE="ralph-tester" ;;
+            docs-gap)           ASSIGNEE="ralph-reviewer" ;;
+          esac
+
+          paperclipai issue create \
+            --title "clawpatch-${SEV}: ${TITLE}" \
+            --assignee "${ASSIGNEE}" \
+            --labels "quality-gate,${CAT},${SEV},priority:p0" \
+            --body-file "${BODYFILE}" || true
+          rm -f "${BODYFILE}"
+        done <<< "${NEW_IDS}"
+
+        # Append audit log row.
+        OPEN_COUNT="$(jq '[.findings[] | select(.status == "open")] | length' "${INPUTS_OPEN_FINDINGS_FILE}")"
+        jq -nc --arg ts "${NOW}" \
+               --arg run "${REPORT}" \
+               --argjson open "${OPEN_COUNT}" \
+          '{ts:$ts, report:$run, open_findings:$open}' >> "${INPUTS_AUDIT_LOG}"
+
+    - id: 04b-resolve
+      kind: bash
+      script: |
+        set -euo pipefail
+        # Check both clearance paths and update open-findings.json accordingly.
+        # Path (a): parent issue of a finding carries label 'quality-gate-cleared'.
+        # Path (b): BuildCommit in pending-buildcommits dir matches finding ID + exit 0.
+        # Both paths close individual findings; lock clears only when open-set == 0.
+
+        NOW="$(date -u +%FT%TZ)"
+        CHANGED=0
+
+        # --- Path (a): label-based clearance ---
+        while IFS=$'\t' read -r FID INTRO_ISSUE; do
+          [ -z "${FID}" ] && continue
+          if [ -z "${INTRO_ISSUE}" ] || [ "${INTRO_ISSUE}" = "null" ]; then
+            continue
+          fi
+
+          # Check if the parent issue carries the cleared label.
+          LABELS="$(paperclipai issue get "${INTRO_ISSUE}" --json 2>/dev/null \
+            | jq -r '[.labels[]? | .name // .] | join(",")' 2>/dev/null || echo '')"
+          if echo "${LABELS}" | grep -q "quality-gate-cleared"; then
+            jq --arg fid "${FID}" --arg ts "${NOW}" --arg issue "${INTRO_ISSUE}" '
+              .findings |= map(
+                if .findingId == $fid and .status == "open"
+                then . + {status: "cleared-via-label", clearedAt: $ts, clearedAtIssue: $issue}
+                else .
+                end
+              )
+            ' "${INPUTS_OPEN_FINDINGS_FILE}" > /tmp/qg-open-findings.tmp
+            mv /tmp/qg-open-findings.tmp "${INPUTS_OPEN_FINDINGS_FILE}"
+            echo "quality-gate: finding ${FID} cleared via path (a) — label on ${INTRO_ISSUE}."
+            CHANGED=1
+          fi
+        done < <(jq -r '
+          .findings[] | select(.status == "open")
+          | [.findingId, (.introducedAtIssue // "null")] | @tsv
+        ' "${INPUTS_OPEN_FINDINGS_FILE}")
+
+        # --- Path (b): BuildCommit-based clearance ---
+        if [ -d "${INPUTS_PENDING_BUILDCOMMITS_DIR}" ]; then
+          for BC_FILE in "${INPUTS_PENDING_BUILDCOMMITS_DIR}"/*.json; do
+            [ -f "${BC_FILE}" ] || continue
+            BC_EXIT="$(jq -r '.acceptance_cmd_result.exit_code // 1' "${BC_FILE}")"
+            [ "${BC_EXIT}" != "0" ] && continue
+
+            BC_SHA="$(jq -r '.sha // ""' "${BC_FILE}")"
+
+            # addresses_finding_id may be a string or array.
+            jq -r '
+              if (.addresses_finding_id | type) == "array"
+              then .addresses_finding_id[]
+              else .addresses_finding_id
+              end
+            ' "${BC_FILE}" | while IFS= read -r FID; do
+              [ -z "${FID}" ] && continue
+              IS_OPEN="$(jq -r --arg fid "${FID}" '
+                .findings[] | select(.findingId == $fid and .status == "open") | .findingId
+              ' "${INPUTS_OPEN_FINDINGS_FILE}")"
+              if [ -n "${IS_OPEN}" ]; then
+                jq --arg fid "${FID}" --arg ts "${NOW}" --arg sha "${BC_SHA}" '
+                  .findings |= map(
+                    if .findingId == $fid and .status == "open"
+                    then . + {status: "cleared-via-buildcommit", clearedAt: $ts, clearedAtCommit: $sha}
+                    else .
+                    end
+                  )
+                ' "${INPUTS_OPEN_FINDINGS_FILE}" > /tmp/qg-open-findings.tmp
+                mv /tmp/qg-open-findings.tmp "${INPUTS_OPEN_FINDINGS_FILE}"
+                echo "quality-gate: finding ${FID} cleared via path (b) — BuildCommit ${BC_SHA}."
+                CHANGED=1
+              fi
+            done
+
+            # Remove processed BuildCommit file (it has been consumed).
+            rm -f "${BC_FILE}"
+          done
+        fi
+
+        echo "CLEARANCE_CHANGED=${CHANGED}" > .paperclip/state/quality-gate.clearance-changed
+
+    - id: 05-enforce
+      kind: bash
+      script: |
+        set -euo pipefail
+        # Derive lock state from the persisted open-findings.json.
+        # Lock is engaged IFF any finding has status == "open".
+        # Lock is NEVER removed just because the latest report was empty.
+
+        OPEN_COUNT="$(jq '[.findings[] | select(.status == "open")] | length' "${INPUTS_OPEN_FINDINGS_FILE}")"
+
+        if [ "${OPEN_COUNT}" -gt 0 ]; then
+          mkdir -p "$(dirname "${INPUTS_LOCK_FILE}")"
+          OPEN_IDS="$(jq -r '[.findings[] | select(.status == "open") | .findingId] | join(",")' "${INPUTS_OPEN_FINDINGS_FILE}")"
+          {
+            echo "engaged_at: $(date -u +%FT%TZ)"
+            echo "open_findings: ${OPEN_COUNT}"
+            echo "finding_ids: ${OPEN_IDS}"
+            echo "open_findings_file: ${INPUTS_OPEN_FINDINGS_FILE}"
+          } > "${INPUTS_LOCK_FILE}"
+          echo "quality-gate: lock ENGAGED — ${OPEN_COUNT} open finding(s): ${OPEN_IDS}"
+
+          # Notify board if findings are new (clearance did not happen this tick).
+          CHANGED="$(grep 'CLEARANCE_CHANGED=1' .paperclip/state/quality-gate.clearance-changed 2>/dev/null || true)"
+          if [ -z "${CHANGED}" ]; then
+            CELL="$(paperclipai issue list --label quality-gate --status open --json \
+              | jq -r '.[0].id // empty' 2>/dev/null || echo '')"
+            if [ -n "${CELL}" ]; then
+              paperclipai issue comment \
+                --issue "${CELL}" \
+                --body "@board quality-gate ENGAGED: ${OPEN_COUNT} open finding(s): ${OPEN_IDS}. matrix-driver T2 dispatch paused. Clear via label \`quality-gate-cleared\` (path a) or BuildCommit reference (path b)." \
+                2>/dev/null || true
+            fi
+          fi
+        else
+          # All findings cleared — remove lock.
+          if [ -f "${INPUTS_LOCK_FILE}" ]; then
+            rm -f "${INPUTS_LOCK_FILE}"
+            echo "quality-gate: lock CLEARED — all findings resolved."
+            CELL="$(paperclipai issue list --label quality-gate --status in_progress --json \
+              | jq -r '.[0].id // empty' 2>/dev/null || echo '')"
+            if [ -n "${CELL}" ]; then
+              paperclipai issue comment \
+                --issue "${CELL}" \
+                --body "@board quality-gate CLEARED — all critical/high findings resolved. matrix-driver T2 dispatch resumed." \
+                2>/dev/null || true
+            fi
+          else
+            echo "quality-gate: no open findings, lock already absent."
+          fi
+        fi
+        rm -f .paperclip/state/quality-gate.clearance-changed
+
+    - id: 06-summarise
+      kind: bash
+      script: |
+        set -euo pipefail
+        REPORT="$(cat .paperclip/state/quality-gate.last-report 2>/dev/null || echo '')"
+        [ -z "${REPORT}" ] || [ ! -s "${REPORT}" ] && exit 0
+
+        CELL="$(paperclipai issue list --label matrix-cell --status in_progress --json \
+                | jq -r '.[0].id // empty' 2>/dev/null || echo '')"
+        if [ -n "${CELL}" ]; then
+          SUMMARY="$(jq -r '
+            [ .findings[]?
+              | select(.severity != "low" and .confidence != "low")
+              | "  - [\(.severity)/\(.confidence) \(.category)] \(.title)"
+            ] | sort | unique | .[0:3] | join("\n")
+          ' "${REPORT}")"
+          if [ -n "${SUMMARY}" ]; then
+            paperclipai issue comment \
+              --issue "${CELL}" \
+              --body $'clawpatch routine (informational):\n'"${SUMMARY}" \
+              2>/dev/null || true
+          fi
+        fi
+
+  on_failure:
+    - kind: notify_slack
+      template: "quality-gate routine FAILED at {ts}: {error}"
+      mention: "@board"
+
+  outputs:
+    - name: report
+      path: ".clawpatch/reports/auto/*.json"
+    - name: audit
+      path: ".paperclip/audit/clawpatch-runs.jsonl"
+    - name: lock
+      path: ".paperclip/state/quality-gate.lock"
+    - name: open_findings
+      path: ".paperclip/state/quality-gate.open-findings.json"
