@@ -151,8 +151,9 @@ class IgFamilyDeviceIdHeaderProbe(
      */
     internal fun parseCaptureFile(json: String): CaptureFile? {
         return try {
+            val sandboxMarker = extractString(json, "sandbox_marker") ?: return null
             CaptureFile(
-                sandboxMarker  = extractString(json, "sandbox_marker") ?: "",
+                sandboxMarker  = sandboxMarker,
                 headerPresent  = extractBoolean(json, "header_present") ?: false,
                 value          = extractString(json, "value"),
                 isValidUuid    = extractBoolean(json, "is_valid_uuid") ?: false,
