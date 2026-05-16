@@ -47,6 +47,13 @@ interface ProbeContext {
      * around `android.os.UserHandle.myUserId()`.
      */
     fun queryUserHandle(): UserHandleView = UnknownUserHandleView
+
+    /**
+     * Default returns the "unknown" view so existing fakes that predate this
+     * method continue to compile. Production impls override with a real
+     * TimeView that reads SystemClock, System.currentTimeMillis, Location, and NTP.
+     */
+    fun queryTimeView(): TimeView = UnknownTimeView
 }
 
 /** Conservative default: claims sdkInt=0 and answers `null` for every probe. */
@@ -267,4 +274,46 @@ interface UserHandleView {
 /** Conservative default: cannot determine the user ID. */
 object UnknownUserHandleView : UserHandleView {
     override fun myUserId(): Int? = null
+}
+
+/**
+ * Read-only view of time sources used by TimeSpoofingProbe.
+ *
+ * Exposes four independent clocks so the probe can cross-validate them
+ * against each other per freeRASP T15:
+ *
+ *   • elapsedRealtime — monotonic uptime clock (SystemClock.elapsedRealtime)
+ *   • wallClock       — wall-clock UTC ms (System.currentTimeMillis)
+ *   • gpsTimestamp    — time embedded in the last GPS fix (Location.getTime), null if unavailable
+ *   • ntpTimestamp    — time from a reachable NTP server, null if network unavailable
+ *
+ * Production impls query the real platform sources.
+ * Test fakes supply controlled values to exercise threshold crossings.
+ */
+interface TimeView {
+    /** `SystemClock.elapsedRealtime()` in milliseconds. */
+    fun elapsedRealtimeMs(): Long
+
+    /** `System.currentTimeMillis()` in milliseconds since Unix epoch. */
+    fun wallClockMs(): Long
+
+    /**
+     * Time extracted from the last known GPS fix (`Location.getTime()`).
+     * Returns `null` when no fix has been obtained or location permission is absent.
+     */
+    fun gpsTimestampMs(): Long?
+
+    /**
+     * Time returned by an NTP query to `time.android.com` (fallback: `pool.ntp.org`).
+     * Returns `null` when the network is unreachable or the query timed out.
+     */
+    fun ntpTimestampMs(): Long?
+}
+
+/** Conservative default: all time sources unavailable (network-less, no GPS). */
+object UnknownTimeView : TimeView {
+    override fun elapsedRealtimeMs(): Long = System.currentTimeMillis()
+    override fun wallClockMs(): Long = System.currentTimeMillis()
+    override fun gpsTimestampMs(): Long? = null
+    override fun ntpTimestampMs(): Long? = null
 }
