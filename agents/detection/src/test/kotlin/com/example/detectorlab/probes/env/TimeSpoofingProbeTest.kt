@@ -17,19 +17,29 @@ import kotlin.test.assertTrue
  *
  * Each delta pair (D1–D4) is exercised in isolation with all other sources
  * clean, verifying correct threshold crossings and score values.
+ *
+ * D1 (bootEpoch drift) is stateful: the first run() of a probe instance
+ * seeds the anchor and reports score=0; subsequent runs compare current
+ * `(wall - elapsed)` against the anchor. See `TimeSpoofingProbe` KDoc.
  */
 class TimeSpoofingProbeTest {
 
     private val probe = TimeSpoofingProbe()
 
-    // Base epoch used across tests — any realistic Unix timestamp.
+    // Base wall-clock epoch used across tests — any realistic Unix timestamp.
     private val base = 1_700_000_000_000L
+
+    // Default elapsed-realtime is boot-relative (small, monotonic since boot),
+    // NOT a Unix epoch. With wall=base and elapsed=cleanElapsed, the inferred
+    // bootEpoch ≈ base - cleanElapsed and is stable across calls when neither
+    // clock has been spoofed.
+    private val cleanElapsed = 1_000L
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private fun fakeCtx(
         wallMs: Long      = base,
-        elapsedMs: Long   = base,          // normally ≈ wallMs for a clean device
+        elapsedMs: Long   = cleanElapsed,  // boot-relative (small), not Unix epoch
         gpsMs: Long?      = base,
         ntpMs: Long?      = base,
         thresholdsJson: String? = null,    // raw JSON for assets/baselines/time-thresholds.json
@@ -62,33 +72,84 @@ class TimeSpoofingProbeTest {
     // ── clean device — no spoofing ────────────────────────────────────────────
 
     @Test
-    fun `clean device — score is 0 when all sources agree`() = runBlocking {
+    fun `clean device — score is 0 when all sources agree on first call`() = runBlocking {
         val result = probe.run(fakeCtx())
         assertFalse(result.failed)
         assertEquals(0.0, result.score)
         assertTrue(result.confidence >= 0.95)
     }
 
-    // ── D1: wall vs elapsed ───────────────────────────────────────────────────
+    // ── D1: bootEpoch anchor (wall - elapsed drift) ───────────────────────────
 
     @Test
-    fun `D1 clean — no flag when delta is below threshold`() = runBlocking {
-        val result = probe.run(fakeCtx(elapsedMs = base + 1_000L))
+    fun `D1 first call — anchor seeded, score is 0, evidence recorded`() = runBlocking {
+        val result = probe.run(fakeCtx(elapsedMs = cleanElapsed))
+        assertFalse(result.failed)
+        assertEquals(0.0, result.score)
+        assertTrue(result.evidence.any { it.key == "d1_anchor_seeded_boot_epoch_ms" })
+    }
+
+    @Test
+    fun `D1 second call clean — no flag when bootEpoch unchanged`() = runBlocking {
+        // First call seeds anchor at bootEpoch = base - 1_000.
+        probe.run(fakeCtx(wallMs = base, elapsedMs = cleanElapsed))
+        // 5 s later: both wall and elapsed advanced together — bootEpoch identical.
+        val result = probe.run(fakeCtx(wallMs = base + 5_000L, elapsedMs = cleanElapsed + 5_000L))
+        assertFalse(result.failed)
+        assertEquals(0.0, result.score)
+        // Evidence should be the compare-form, not the seed-form.
+        assertTrue(result.evidence.any { it.key == "delta_wall_vs_elapsed_ms" })
+        assertTrue(result.evidence.any { it.key == "boot_epoch_anchor_ms" })
+    }
+
+    @Test
+    fun `D1 second call below threshold — no flag for small clock drift`() = runBlocking {
+        probe.run(fakeCtx(wallMs = base, elapsedMs = cleanElapsed))
+        // 10 s of elapsed time later, wall jumped only +5 s extra (5 s bootEpoch
+        // drift, well within the 30 s tolerance). Align GPS+NTP with the new
+        // wall so D2/D3 stay clean — this test isolates D1.
+        val newWall = base + 15_000L
+        val result = probe.run(fakeCtx(
+            wallMs    = newWall,
+            elapsedMs = cleanElapsed + 10_000L,
+            gpsMs     = newWall,
+            ntpMs     = newWall,
+        ))
         assertFalse(result.failed)
         assertEquals(0.0, result.score)
     }
 
     @Test
-    fun `D1 triggered — score is 0_55 when wall vs elapsed exceeds 30s`() = runBlocking {
-        val result = probe.run(fakeCtx(elapsedMs = base + 40_000L))
+    fun `D1 triggered — score is 0_55 when bootEpoch diverges by 1 hour from anchor`() = runBlocking {
+        // Seed anchor.
+        probe.run(fakeCtx(wallMs = base, elapsedMs = cleanElapsed))
+        // 5 s of elapsed time later; wall-clock spoofed +1 h forward.
+        // Move GPS+NTP with the new wall so D2/D3 don't also fire — we want
+        // to verify D1's score in isolation.
+        val newWall = base + 3_605_000L
+        val result = probe.run(fakeCtx(
+            wallMs    = newWall,
+            elapsedMs = cleanElapsed + 5_000L,
+            gpsMs     = newWall,
+            ntpMs     = newWall,
+        ))
         assertFalse(result.failed)
         assertEquals(0.55, result.score)
     }
 
     @Test
-    fun `D1 evidence key present`() = runBlocking {
-        val result = probe.run(fakeCtx(elapsedMs = base + 40_000L))
+    fun `D1 triggered — evidence carries delta and anchor values`() = runBlocking {
+        probe.run(fakeCtx(wallMs = base, elapsedMs = cleanElapsed))
+        val newWall = base + 3_605_000L
+        val result = probe.run(fakeCtx(
+            wallMs    = newWall,
+            elapsedMs = cleanElapsed + 5_000L,
+            gpsMs     = newWall,
+            ntpMs     = newWall,
+        ))
         assertTrue(result.evidence.any { it.key == "delta_wall_vs_elapsed_ms" })
+        assertTrue(result.evidence.any { it.key == "boot_epoch_anchor_ms" })
+        assertTrue(result.evidence.any { it.key == "boot_epoch_current_ms" })
     }
 
     // ── D2: wall vs GPS ───────────────────────────────────────────────────────
@@ -102,7 +163,9 @@ class TimeSpoofingProbeTest {
 
     @Test
     fun `D2 triggered — score is 0_75 when wall vs GPS exceeds 10s`() = runBlocking {
-        val result = probe.run(fakeCtx(gpsMs = base + 15_000L))
+        // ntp=null so D4 stays skipped — otherwise a 15s gps offset would also
+        // exceed the D4 (gps vs ntp) threshold and inflate the score.
+        val result = probe.run(fakeCtx(gpsMs = base + 15_000L, ntpMs = null))
         assertFalse(result.failed)
         assertEquals(0.75, result.score)
     }
@@ -127,7 +190,9 @@ class TimeSpoofingProbeTest {
 
     @Test
     fun `D3 triggered — score is 0_80 when wall vs NTP exceeds 10s`() = runBlocking {
-        val result = probe.run(fakeCtx(ntpMs = base + 20_000L))
+        // gps=null so D4 stays skipped — otherwise a 20s ntp offset relative to
+        // default gps would also exceed the D4 threshold and inflate the score.
+        val result = probe.run(fakeCtx(gpsMs = null, ntpMs = base + 20_000L))
         assertFalse(result.failed)
         assertEquals(0.80, result.score)
     }
@@ -169,10 +234,17 @@ class TimeSpoofingProbeTest {
 
     @Test
     fun `max score wins when multiple deltas triggered`() = runBlocking {
-        // D1 (0.55) + D3 (0.80) both triggered; result should be 0.80
+        // Seed D1 anchor first.
+        probe.run(fakeCtx(wallMs = base, elapsedMs = cleanElapsed))
+        // Second call triggers both D1 (bootEpoch jumped +1 h) and D3
+        // (wall vs NTP > 10 s). gps=null skips D2 and D4 so we observe the
+        // max purely between D1 (0.55) and D3 (0.80) → 0.80.
+        val newWall = base + 3_605_000L
         val result = probe.run(fakeCtx(
-            elapsedMs = base + 40_000L,   // D1 triggered
-            ntpMs     = base + 20_000L,   // D3 triggered
+            wallMs    = newWall,
+            elapsedMs = cleanElapsed + 5_000L,
+            gpsMs     = null,
+            ntpMs     = newWall + 20_000L,
         ))
         assertFalse(result.failed)
         assertEquals(0.80, result.score)
@@ -180,16 +252,21 @@ class TimeSpoofingProbeTest {
 
     @Test
     fun `confidence is 0_95 when two or more deltas triggered`() = runBlocking {
+        probe.run(fakeCtx(wallMs = base, elapsedMs = cleanElapsed))
+        val newWall = base + 3_605_000L
         val result = probe.run(fakeCtx(
-            elapsedMs = base + 40_000L,
-            ntpMs     = base + 20_000L,
+            wallMs    = newWall,
+            elapsedMs = cleanElapsed + 5_000L,
+            gpsMs     = null,
+            ntpMs     = newWall + 20_000L,
         ))
         assertEquals(0.95, result.confidence)
     }
 
     @Test
     fun `confidence is 0_80 when exactly one delta triggered`() = runBlocking {
-        val result = probe.run(fakeCtx(ntpMs = base + 20_000L))
+        // gps=null skips D2 and D4, so only D3 fires.
+        val result = probe.run(fakeCtx(gpsMs = null, ntpMs = base + 20_000L))
         assertEquals(0.80, result.confidence)
     }
 

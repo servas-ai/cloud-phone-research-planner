@@ -19,11 +19,11 @@ import kotlin.math.abs
  *
  *   Delta pair                            Threshold (ms)  Score if exceeded
  *   ──────────────────────────────────────────────────────────────────────────
- *   wall_vs_elapsed     (D1)              ±30 000          0.55  (skew between
- *                                                                 monotonic and
- *                                                                 wall clock —
- *                                                                 possible clock
- *                                                                 adjustment)
+ *   bootEpoch_drift     (D1)              ±30 000          0.55  (drift of
+ *                                                                 (wall - elapsed)
+ *                                                                 vs the session
+ *                                                                 anchor — see D1
+ *                                                                 notes below)
  *   wall_vs_gps         (D2)              ±10 000          0.75  (GPS carries
  *                                                                 hardware time)
  *   wall_vs_ntp         (D3)              ±10 000          0.80  (NTP is an
@@ -38,6 +38,39 @@ import kotlin.math.abs
  *
  * Score is the maximum over all triggered deltas. Confidence is 0.95 when two
  * or more deltas are triggered, 0.80 when exactly one, 0.97 when all clean.
+ *
+ * ── D1 — bootEpoch anchor strategy ─────────────────────────────────────────
+ *
+ * Earlier revisions of this probe computed `abs(wallClockMs - elapsedRealtimeMs)`,
+ * which is a unit-error: wall-clock is Unix-epoch ms (~1.7e12), elapsedRealtime
+ * is boot-relative ms (small). The difference is dominated by the boot epoch
+ * and trivially exceeds the 30 s threshold on every clean device.
+ *
+ * The correct invariant is that `bootEpoch ≡ wallClockMs - elapsedRealtimeMs`
+ * is approximately constant over the life of a process. Wall-clock jumps
+ * (manual time changes, NITZ updates, malicious spoofing) shift bootEpoch
+ * by the same amount; elapsedRealtime keeps advancing monotonically through
+ * deep sleep. So a step in bootEpoch is direct evidence of a wall-clock
+ * adjustment.
+ *
+ * Anchor lifecycle:
+ *   • Storage:  in-memory `@Volatile` field on this probe instance. The
+ *               anchor is intentionally session-stable, not persisted —
+ *               survives across probe invocations within the same process,
+ *               resets on process restart (the next run() reseeds).
+ *   • TTL:      process lifetime. No external eviction; tied to the probe
+ *               instance lifecycle managed by the scheduler.
+ *   • Seeding:  on the first run() invocation in a session, the anchor is
+ *               null. We compute `bootEpoch = wallMs - elapsedMs`, store it,
+ *               record `d1_anchor_seeded_boot_epoch_ms` evidence, and return
+ *               D1 score = 0 (we cannot detect drift without a reference).
+ *   • Compare:  on subsequent calls, `currentBootEpoch = wallMs - elapsedMs`;
+ *               `d1Delta = abs(currentBootEpoch - anchorBootEpoch)`. If the
+ *               delta exceeds `d1WallVsElapsedMs` (default 30 000 ms),
+ *               D1 fires with `SCORE_D1`.
+ *
+ * Race notes: read-update of the anchor is done under a small intrinsic lock
+ * so two concurrent first-calls can't both observe `null` and seed twice.
  */
 class TimeSpoofingProbe : Probe {
     override val id = "env.time_spoofing"
@@ -62,6 +95,11 @@ class TimeSpoofingProbe : Probe {
         const val THRESHOLDS_ASSET = "assets/baselines/time-thresholds.json"
     }
 
+    // Session-stable anchor for D1. See class KDoc for lifecycle.
+    @Volatile
+    private var bootEpochAnchorMs: Long? = null
+    private val anchorLock = Any()
+
     override suspend fun run(ctx: ProbeContext): ProbeResult {
         val start = System.currentTimeMillis()
         return try {
@@ -77,19 +115,37 @@ class TimeSpoofingProbe : Probe {
             var maxScore = 0.0
             var triggeredCount = 0
 
-            evidence += Evidence("wall_clock_ms",      wallMs)
+            evidence += Evidence("wall_clock_ms",       wallMs)
             evidence += Evidence("elapsed_realtime_ms", elapsedMs)
-            evidence += Evidence("gps_timestamp_ms",   gpsMs ?: "unavailable")
-            evidence += Evidence("ntp_timestamp_ms",   ntpMs ?: "unavailable")
+            evidence += Evidence("gps_timestamp_ms",    gpsMs ?: "unavailable")
+            evidence += Evidence("ntp_timestamp_ms",    ntpMs ?: "unavailable")
 
-            // D1 — wall vs elapsed (approx: elapsed ~ time-since-boot, so
-            // wall - boot_epoch_estimate gives an independent reference)
-            val d1Delta = abs(wallMs - elapsedMs)
-            val d1Threshold = thresholds.d1WallVsElapsedMs
-            evidence += Evidence("delta_wall_vs_elapsed_ms", d1Delta, expected = "<$d1Threshold")
-            if (d1Delta > d1Threshold) {
-                maxScore = maxOf(maxScore, SCORE_D1)
-                triggeredCount++
+            // D1 — drift of (wall - elapsed) bootEpoch vs the session anchor.
+            // First call seeds the anchor and yields score=0; subsequent calls
+            // compare. See class KDoc "D1 — bootEpoch anchor strategy".
+            val currentBootEpochMs = wallMs - elapsedMs
+            val priorAnchor: Long? = synchronized(anchorLock) {
+                val existing = bootEpochAnchorMs
+                if (existing == null) {
+                    bootEpochAnchorMs = currentBootEpochMs
+                    null   // signals "we just seeded"
+                } else {
+                    existing
+                }
+            }
+
+            if (priorAnchor == null) {
+                evidence += Evidence("d1_anchor_seeded_boot_epoch_ms", currentBootEpochMs)
+            } else {
+                val d1Delta = abs(currentBootEpochMs - priorAnchor)
+                val d1Threshold = thresholds.d1WallVsElapsedMs
+                evidence += Evidence("boot_epoch_anchor_ms", priorAnchor)
+                evidence += Evidence("boot_epoch_current_ms", currentBootEpochMs)
+                evidence += Evidence("delta_wall_vs_elapsed_ms", d1Delta, expected = "<$d1Threshold")
+                if (d1Delta > d1Threshold) {
+                    maxScore = maxOf(maxScore, SCORE_D1)
+                    triggeredCount++
+                }
             }
 
             // D2 — wall vs GPS
@@ -141,7 +197,7 @@ class TimeSpoofingProbe : Probe {
                 score = maxScore,
                 confidence = confidence,
                 evidence = evidence,
-                method = "cross-validate wall/elapsed/GPS/NTP clocks per freeRASP T15",
+                method = "cross-validate bootEpoch anchor + wall/GPS/NTP per freeRASP T15",
                 runtimeMs = System.currentTimeMillis() - start,
             )
         } catch (e: Throwable) {
