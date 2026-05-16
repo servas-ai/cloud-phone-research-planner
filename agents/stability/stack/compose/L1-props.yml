@@ -19,13 +19,14 @@ modules:
 
   - id: DeviceSpoofLab-Magisk
     source: github.com/yubunus/DeviceSpoofLab-Magisk
-    pinned_version: "latest-main"  # see shared/spoofstack-modules.md §Verified baseline
+    pinned_version: "2748e749866a04cf887b468deddc651bca4ef0a8"  # SHA-pinned (CLO-53); see shared/spoofstack-modules.md §Verified baseline
     purpose: "build.prop filesystem patches (#4, #7, #13, #28)"
     enabled: true
 
   - id: DeviceSpoofLab-Hooks
     source: github.com/yubunus/DeviceSpoofLab-Hooks
-    pinned_version: "latest-main"
+    # SHA-pinned (CLO-53)
+    pinned_version: "410eb85daee0779db999c3e9b1277ef90b4bb97e"
     purpose: "API-level property hooks 126+ props (#1, #9, #27)"
     enabled: true
 
