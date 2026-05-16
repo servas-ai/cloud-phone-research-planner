@@ -22,6 +22,13 @@ interface ProbeContext {
      * around `android.app.KeyguardManager`.
      */
     fun queryKeyguardManager(): KeyguardManagerView = UnknownKeyguardManagerView
+
+    /**
+     * Default returns the "unknown" view so existing fakes that predate this
+     * method continue to compile. Production impls override with a wrapper
+     * around `android.net.wifi.WifiManager`.
+     */
+    fun queryWifiManager(): WifiManagerView = UnknownWifiManagerView
 }
 
 /** Conservative default: claims sdkInt=0 and answers `null` for every probe. */
@@ -107,3 +114,60 @@ interface KeyguardManagerView {
 }
 
 data class SensorSample(val timestamps: LongArray, val values: Array<FloatArray>)
+
+/**
+ * Read-only view of android.net.wifi.WifiManager. The probe surface is the
+ * *security type* of the currently associated network, not the SSID or BSSID,
+ * so this view deliberately avoids exposing PII-grade fields.
+ *
+ * Implementations MUST return:
+ *   - `SecurityType.UNAVAILABLE` if the caller lacks `ACCESS_FINE_LOCATION`
+ *     and/or `NEARBY_WIFI_DEVICES` (API 33+) — probes treat this as "skipped".
+ *   - `SecurityType.NOT_CONNECTED` if the device is not currently associated
+ *     with any Wi-Fi network.
+ *   - The actual security type otherwise.
+ */
+interface WifiManagerView {
+    /** Android `Build.VERSION.SDK_INT` — gates API-31+ vs deprecated paths. */
+    fun sdkInt(): Int
+
+    /** True iff the caller currently holds the permission required to read
+     *  Wi-Fi network details (`ACCESS_FINE_LOCATION` < API 33,
+     *  `NEARBY_WIFI_DEVICES` >= API 33). */
+    fun hasWifiAccessPermission(): Boolean
+
+    /**
+     * Returns the security type of the currently associated network, or the
+     * appropriate sentinel value. The "method" output names which underlying
+     * API was used so probes can report it back to evidence.
+     */
+    fun currentNetworkSecurityType(): WifiSecurityRead
+}
+
+enum class WifiSecurityType {
+    NONE,           // open network
+    WEP,            // deprecated since API 28; treated as insecure
+    WPA,            // WPA-PSK / WPA-EAP
+    WPA2,           // WPA2-PSK / WPA2-EAP
+    WPA3,           // WPA3-SAE / WPA3-Enterprise
+    UNKNOWN,        // associated but security type unrecognised
+    NOT_CONNECTED,  // no current Wi-Fi association
+    UNAVAILABLE,    // required permission missing → caller should skip
+}
+
+/**
+ * Result of a Wi-Fi security-type read.
+ *
+ * @property type      classified security type
+ * @property apiPath   which underlying API was used — "WifiManager.getCurrentNetwork+NetworkCapabilities"
+ *                     on API >=31, "WifiConfiguration.allowedKeyManagement" on older.
+ */
+data class WifiSecurityRead(val type: WifiSecurityType, val apiPath: String)
+
+/** Conservative default: the runtime has no Wi-Fi information at all. */
+object UnknownWifiManagerView : WifiManagerView {
+    override fun sdkInt(): Int = 0
+    override fun hasWifiAccessPermission(): Boolean = false
+    override fun currentNetworkSecurityType(): WifiSecurityRead =
+        WifiSecurityRead(WifiSecurityType.UNAVAILABLE, "default-stub")
+}

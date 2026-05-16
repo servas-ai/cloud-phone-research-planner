@@ -26,7 +26,15 @@ data class ProbeResult(
         require(failed == (failureReason != null)) { "failed-flag and failureReason must agree" }
     }
 
+    /** True iff the probe ran to completion (i.e. neither failed nor skipped). */
+    val ok: Boolean get() = !failed
+
+    /** True iff the probe deliberately abstained (no exception, no verdict). */
+    val skipped: Boolean get() = failed && failureReason?.startsWith(SKIPPED_PREFIX) == true
+
     companion object {
+        const val SKIPPED_PREFIX = "skipped: "
+
         fun failed(reason: String, runtimeMs: Long = 0L): ProbeResult = ProbeResult(
             score = 0.0,
             confidence = 0.0,
@@ -35,6 +43,26 @@ data class ProbeResult(
             runtimeMs = runtimeMs,
             failed = true,
             failureReason = reason,
+        )
+
+        /**
+         * Probe deliberately abstained — usually because a required runtime
+         * permission was not granted, a target API was unavailable, or the
+         * environment lacks the probed surface (e.g. no Wi-Fi adapter). Carries
+         * no score, no confidence; downstream consumers MUST treat this as a
+         * "no signal" record, NOT a "clean" verdict.
+         *
+         * Implemented as a flavour of `failed` so existing consumers continue
+         * to work; `result.skipped == true` distinguishes the two.
+         */
+        fun skipped(reason: String, runtimeMs: Long = 0L): ProbeResult = ProbeResult(
+            score = 0.0,
+            confidence = 0.0,
+            evidence = emptyList(),
+            method = "(skipped)",
+            runtimeMs = runtimeMs,
+            failed = true,
+            failureReason = SKIPPED_PREFIX + reason,
         )
     }
 }
