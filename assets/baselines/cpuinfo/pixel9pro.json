@@ -1,0 +1,18 @@
+{
+  "model": "Pixel 9 Pro",
+  "soc": "Tensor G4 (GS301)",
+  "arch": "arm64",
+  "cpu_implementer": "0x41",
+  "cpu_part": "0xd05",
+  "bogomips_min": 10.0,
+  "bogomips_max": 80.0,
+  "bogomips_typical": 52.00,
+  "arm_neon_expected": true,
+  "hwcap_expected_features": [
+    "fp", "asimd", "evtstrm", "aes", "pmull", "sha1", "sha2", "crc32", "atomics",
+    "fphp", "asimdhp", "cpuid", "asimdrdm", "lrcpc", "dcpop", "sha3", "asimddp",
+    "sha512", "asimdfhm", "dit", "uscat", "ilrcpc", "flagm", "jscvt", "fcma",
+    "rcpc", "dcpodp", "i8mm", "bf16", "dgh", "bti", "rng", "mte", "sve"
+  ],
+  "notes": "Baseline captured from factory-reset Pixel 9 Pro (US variant, Android 15)"
+}
