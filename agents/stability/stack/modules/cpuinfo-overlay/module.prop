@@ -1,0 +1,6 @@
+id=cpuinfo-overlay
+name=CpuInfo Overlay (kernel.cpuinfo_bogomips fix)
+version=v0.1.0
+versionCode=1
+author=emulator-builder
+description=Bind-mounts a synthesised ARM Cortex-A78 /proc/cpuinfo over the host file. Masks bogomips, implementer, Serial, and Hardware fields to match the Pixel-7-class spoof profile. Targets CLO-27 / proposal 019e2f12-726b-74b7-bbd9-6d9a17e208ea.

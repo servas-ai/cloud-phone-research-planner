@@ -1,0 +1,5 @@
+#!/system/bin/sh
+# Minimal Magisk-module update-binary stub.
+# Actual overlay is applied by service.sh at late_start_service, not at flash time.
+# This stub satisfies the Magisk installer format requirement.
+SKIPUNZIP=1
