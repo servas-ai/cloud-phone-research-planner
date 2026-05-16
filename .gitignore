@@ -28,3 +28,10 @@ dist/
 .env.local
 secrets.yml
 audit-reports/
+
+# Importer runtime state (W7 paperclip-issues import)
+docs/super-action/W7/.import-state.json
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,29 @@
+[
+  {
+    "probe_id": "buildprop.fingerprint",
+    "probe_name": "BuildFingerprintProbe",
+    "category": "buildprop",
+    "layer": "L1",
+    "command": "getprop ro.build.fingerprint && getprop ro.build.display.id && getprop ro.build.version.security_patch",
+    "scoring": "regex_match",
+    "score_pattern": "userdebug|test-keys|generic|emu"
+  },
+  {
+    "probe_id": "emulator.qemu_artifacts",
+    "probe_name": "QemuArtifactsProbe",
+    "category": "emulator",
+    "layer": "L1",
+    "command": "getprop ro.hardware && getprop ro.kernel.qemu && ls /dev/qemu_pipe 2>/dev/null || true",
+    "scoring": "regex_match",
+    "score_pattern": "goldfish|ranchu|vbox|qemu"
+  },
+  {
+    "probe_id": "runtime.installed_apps",
+    "probe_name": "InstalledAppsProbe",
+    "category": "runtime",
+    "layer": "L4",
+    "command": "pm list packages | grep -E 'magisk|lsposed|xposed|riru|zygisk' || echo CLEAN",
+    "scoring": "negated_clean",
+    "score_pattern": "CLEAN"
+  }
+]

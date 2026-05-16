@@ -1,0 +1,4 @@
+# Probe output is per-run / per-machine; only schema-stamped fixtures live in
+# examples/ and are checked in.
+*.json
+!.gitkeep

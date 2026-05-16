@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "probe_id": "buildprop.fingerprint",
+  "probe_name": "BuildFingerprintProbe",
+  "category": "buildprop",
+  "layer": "L1",
+  "score": 0.0,
+  "runtime_ms": 1,
+  "sample_count": 1,
+  "seed_ms": 1778906552799,
+  "raw": {
+    "stdout": "google/shiba/shiba:15/AP3A.241105.007/12771088:user/release-keys\n15\n2025-04-05"
+  },
+  "confidence": 0.9,
+  "evidence": [
+    {
+      "path": "droidrun:buildprop.fingerprint",
+      "value": "getprop ro.build.fingerprint && getprop ro.build.display.id && getprop ro.build.version.security_patch"
+    }
+  ],
+  "notes": "cell=pixel8-a15 dry_run=1"
+}
