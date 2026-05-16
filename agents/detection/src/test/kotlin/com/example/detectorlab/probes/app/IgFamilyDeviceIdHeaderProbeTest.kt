@@ -260,8 +260,8 @@ class IgFamilyDeviceIdHeaderProbeTest {
     }
 
     @Test
-    fun `probe category is APP`() {
-        assertEquals(ProbeCategory.APP, probe.category)
+    fun `probe category is IDENTITY`() {
+        assertEquals(ProbeCategory.IDENTITY, probe.category)
     }
 
     @Test

@@ -34,7 +34,7 @@ interface Probe {
 
 enum class ProbeCategory {
     BUILDPROP, INTEGRITY, ROOT, EMULATOR, NETWORK,
-    IDENTITY, RUNTIME, SENSORS, UI, ENV, APP
+    IDENTITY, RUNTIME, SENSORS, UI, ENV
 }
 
 enum class ProbeSeverity { CRITICAL, HIGH, MEDIUM, LOW, TRACE }

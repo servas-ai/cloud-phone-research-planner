@@ -50,7 +50,7 @@ class IgFamilyDeviceIdHeaderProbe(
 
     override val id = "app.ig_family_device_id_header"
     override val rank = RANK
-    override val category = ProbeCategory.APP
+    override val category = ProbeCategory.IDENTITY
     override val severity = ProbeSeverity.HIGH
     override val androidLayer = AndroidLayer.NETWORK
     override val budgetMs = 500L
