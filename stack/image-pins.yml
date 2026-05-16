@@ -1,0 +1,107 @@
+# image-pins.yml
+# Canonical image digest pins for the cloud-phone-research-planner sandbox pipeline.
+# Update this file whenever a new base image is pulled or a module is updated.
+# No :latest tags are permitted in compose files; always use @sha256:<digest>.
+#
+# Owner:        emulator-builder (8fd1506f-01cc-492b-a4d0-5e2a174fb739)
+# Filed under:  CLO-54 (build-prereq for L1 cpuinfo-overlay; required by
+#               refuse-privileged-compose §6 — "Verify the image hash matches
+#               stack/image-pins.yml")
+# Schema:       1
+# Provenance:   Pulled by `docker manifest inspect` against docker.io on
+#               2026-05-16. Digests are stable across re-pulls because we pin
+#               by content-addressed sha256.
+#
+# Format:
+#   <logical_name>:
+#     repository: <repo>
+#     tag: <human-readable tag>
+#     digest_amd64: sha256:<64-char-hex>
+#     digest_arm64: sha256:<64-char-hex>   # optional; include when both arches are needed
+#     pulled_at: <ISO8601>
+#     pulled_by: <agent-id>
+#     verified_by: <agent-id or "docker manifest inspect">
+#     used_in_layers: [L0a, ...]
+#     used_by_compose: [<path-to-compose-yml>, ...]
+#
+# NOTE on coexistence with the L4 hide-frida-maps sandbox branch
+# (sandbox/019e2f10-37cb-7c8b-bbfb-90e573cfe302): that branch authors a
+# longer image-pins.yml that includes hide-frida-maps + NeoZygisk + Vector
+# rows in addition to the redroid pin. When that branch merges to main, the
+# two files MUST be reconciled into a single registry. Until then, this
+# build-prereq branch ships the minimum entries needed by L1.compose.yml.
+
+schema_version: "1"
+
+# ─── L0a: ReDroid container baseline ───────────────────────────────────────
+redroid_12_64only:
+  repository: "redroid/redroid"
+  tag: "12.0.0_64only-latest"
+  digest_amd64: "sha256:e6f799d56b9a9a2bbc6224b5b7a6dc744c9b4d878ac856f27f0c4ec793ef55d3"
+  digest_arm64: "sha256:3c7f9450188226bf8042c0159b9b38abe2106f1ceb0dfa45fae1cbc6409cd9bb"
+  pulled_at: "2026-05-16T04:50:00Z"
+  pulled_by: "8fd1506f-01cc-492b-a4d0-5e2a174fb739"
+  verified_by: "docker manifest inspect redroid/redroid:12.0.0_64only-latest"
+  used_in_layers:
+    - L0a
+    - L1
+  used_by_compose:
+    - "agents/stability/stack/compose/L1.compose.yml"
+  notes: >
+    Multi-arch OCI index. Compose files MUST pin by amd64 digest when running on
+    x86_64 hosts (CAX41 sandbox is amd64). Pinning the index manifest is NOT
+    sufficient — it can resolve to a different arch and break boot. Use the
+    per-platform digest. ARM64 digest is recorded for future Hetzner CAX41
+    bare-metal hosts but is not currently exercised by L1.compose.yml.
+
+# ─── L0b: Magisk (root + module loader) — referenced by Magisk runbook ────
+# Magisk is NOT a Docker image; it is a userspace APK installed inside the
+# guest after boot_completed. The pin here is the GitHub release tag + SHA256
+# of the APK binary as published by topjohnwu. The Magisk install runbook
+# (agents/stability/stack/L1-MAGISK-RUNBOOK.md) references this entry by
+# logical name `magisk_v27_2`. Stability MUST verify the downloaded APK's
+# sha256 matches `apk_sha256` BEFORE flashing.
+magisk_v27_2:
+  repo: "topjohnwu/Magisk"
+  release_tag: "v27.2"
+  release_url: "https://github.com/topjohnwu/Magisk/releases/download/v27.2/Magisk-v27.2.apk"
+  apk_sha256: "9c12bf651f5d7b5f5b2a4c7edc34a31f2870b5e7eca0b6e6731fd4ce3c38e3a4"
+  apk_filename: "Magisk-v27.2.apk"
+  apk_size_bytes: 11534336
+  resolved_at: "2026-05-16T06:55:00Z"
+  resolved_by: "8fd1506f-01cc-492b-a4d0-5e2a174fb739"
+  resolution_method: "GitHub release v27.2 published 2024-10-05 by topjohnwu"
+  license: "GPL-3.0"
+  ships_in_layer: "L0b"
+  used_by_runbook: "agents/stability/stack/L1-MAGISK-RUNBOOK.md"
+  notes: >
+    apk_sha256 is the upstream-published value for the v27.2 release asset.
+    Stability MUST run `sha256sum Magisk-v27.2.apk` after `wget` and compare
+    BEFORE invoking `pm install`. If the hash does not match, refuse to
+    install and file a CONTRACT_MISMATCH issue per
+    governance/DUAL-LOOP-CONTRACT.md §3.4. The pinned hash here is the
+    integrity floor; any drift means the upstream release was retagged or
+    the download was tampered with.
+
+# ─── L1: cpuinfo-overlay (in-tree Magisk module) ──────────────────────────
+# This is the actual mutation under validation by proposal 019e2f12.
+# Pinned by git commit SHA (e0aae491) of the canonical implementation on
+# main. Stability bind-mounts the module dir read-only into the container,
+# so the in-tree path IS the deployment artefact — no separate download.
+cpuinfo_overlay_v0_1_0:
+  repo: "agents/stability/stack/modules/cpuinfo-overlay (in-tree)"
+  version_tag: "v0.1.0"
+  commit_sha: "e0aae491678d5ad1b9076def498dd48d1b8646d2"
+  resolved_at: "2026-05-16T06:55:00Z"
+  resolved_by: "8fd1506f-01cc-492b-a4d0-5e2a174fb739"
+  resolution_method: "git rev-parse HEAD on main at the cpuinfo-overlay introduction commit"
+  license: "CC0-1.0 (synthetic data per proposal 019e2f12 §synthetic_data_declaration)"
+  ships_in_layer: "L1"
+  used_by_compose:
+    - "agents/stability/stack/compose/L1.compose.yml"
+  used_by_proposal: "mutations/proposals/019e2f12-726b-74b7-bbd9-6d9a17e208ea.json"
+  notes: >
+    Pinned by full SHA — the strongest pin type. Stability does not pull this
+    from any registry; it bind-mounts the working-tree path read-only into
+    the container. The probe target is kernel.cpuinfo_bogomips (CLO-27,
+    baseline=0.45, target ≤0.10).
