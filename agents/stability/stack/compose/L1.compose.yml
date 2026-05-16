@@ -21,7 +21,7 @@
 #          rg -nE '(privileged:\s*(true|yes)|cap_add:.*SYS_ADMIN|pid:\s*host|network:\s*host|ipc:\s*host|userns_mode:\s*host|/var/run/docker\.sock|:/host)'
 #      MUST return zero matches against this file.
 #   3. ✅ `cap_drop: [ALL]` present on every service.
-#   4. ✅ `security_opt: ["seccomp=./agents/stability/stack/security/redroid-seccomp.json"]` present.
+#   4. ✅ `security_opt: ["seccomp=./agents/stability/stack/seccomp/redroid-seccomp.json"]` present.
 #   5. ✅ `security_opt: ["no-new-privileges:true"]` present.
 #   6. ✅ Image referenced via @sha256 digest pinned in stack/image-pins.yml
 #      (redroid_12_64only.digest_amd64).
@@ -91,7 +91,7 @@ x-redroid-l1-base: &redroid-l1-base
   # ---------- Sandbox hardening ----------
   security_opt:
     - "no-new-privileges:true"
-    - "seccomp=./agents/stability/stack/security/redroid-seccomp.json"
+    - "seccomp=./agents/stability/stack/seccomp/redroid-seccomp.json"
     - "apparmor=unconfined"
 
   # ---------- Binder + ashmem device passthrough (no privileged needed) ----------

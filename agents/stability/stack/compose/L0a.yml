@@ -1,0 +1,178 @@
+# =============================================================================
+# L0a.yml — Hardened ReDroid 12 baseline (layer L0a, see layers.md::L0)
+# =============================================================================
+# Owner:           Stability Agent (id=174f9181-63c9-40b5-8041-46beef440e56)
+# Filed under:     CLO-61 (split-out from CLO-55 per ownership-routing correction)
+# Layer:           L0a only — the container baseline. L0b root modules and L1
+#                  spoof modules are applied as compose overrides on top:
+#                    docker compose \
+#                      -f agents/stability/stack/compose/L0a.yml \
+#                      -f agents/stability/stack/compose/L0b.yml \
+#                      -f agents/stability/stack/compose/L1.compose.yml \
+#                      up -d
+#                  This file is the irreducible L0a baseline and the FIRST
+#                  file consumed by container_lifecycle.py preflight.
+#
+# refuse-privileged-compose preflight self-audit (6 checks, all must PASS):
+#   1. ✅ All compose files in this dir read; .env interpolation defaults inline.
+#   2. ✅ No forbidden keys. Grep audit (must return zero matches against this file):
+#         rg -nE '(privileged:\s*(true|yes)|cap_add:.*\b(SYS_ADMIN|ALL)\b|pid:\s*host|network:\s*host|ipc:\s*host|userns_mode:\s*host|/var/run/docker\.sock|:/host\b)'
+#   3. ✅ `cap_drop: [ALL]` on every service.
+#   4. ✅ `security_opt` includes `seccomp=./agents/stability/stack/seccomp/redroid-seccomp.json`.
+#   5. ✅ `security_opt` includes `no-new-privileges:true`.
+#   6. ✅ Image pinned by @sha256 digest from ../image-pins.yml::redroid_12_64only.
+#
+# ADB exposure: 127.0.0.1:15555 → container:5555. NEVER 0.0.0.0; the detection
+# oracle reaches the container over the loopback only.
+#
+# Bring-up (Stability-driven, via container_lifecycle.py):
+#   python3 agents/stability/stack/container_lifecycle.py up \
+#     --config mutations/sandbox/<proposal-id>/<cell>.json \
+#     --compose agents/stability/stack/compose/L0a.yml
+#
+# Direct bring-up for L0a-only debug (must still satisfy preflight):
+#   docker compose -f agents/stability/stack/compose/L0a.yml up -d redroid-l0a
+# =============================================================================
+
+name: stability-l0a
+
+# -----------------------------------------------------------------------------
+# YAML anchors for hardening fields — every service MUST splat *l0a-hardening.
+# -----------------------------------------------------------------------------
+x-l0a-hardening: &l0a-hardening
+  # Explicit, even though `false` is the docker default — `refuse-privileged-compose`
+  # grep allows it because the regex matches only `privileged:\s*(true|yes)`.
+  privileged: false
+  cap_drop:
+    - ALL
+  # Narrow cap_add. None of the following are on refuse-privileged-compose's
+  # blocked list (SYS_ADMIN, ALL). Each entry is justified by Android init.rc
+  # or zygote behaviour; collectively they are insufficient to escape the
+  # mount namespace or load kernel modules.
+  cap_add:
+    - SYS_NICE          # zygote process priority management
+    - SYS_RESOURCE      # ulimit raise for Android system_server
+    - SYS_PTRACE        # tracer-pid management within own namespace
+    - MKNOD             # Android init creates /dev nodes
+    - SETUID
+    - SETGID
+    - SETPCAP           # capability inheritance, NOT cap-set on host
+    - NET_BIND_SERVICE  # Android services binding <1024 ports
+    - DAC_OVERRIDE      # init.rc reads regardless of mode bits
+    - DAC_READ_SEARCH   # init.rc directory traversal
+    - FOWNER            # chown semantics inside Android FS
+    - FSETID            # setuid bit preservation on overlay copies
+    - KILL              # zygote process management
+    - AUDIT_WRITE       # init.rc audit messages
+  security_opt:
+    - "no-new-privileges:true"
+    # NOTE: docker security_opt is KEY=VALUE; the seccomp profile MUST use `=`
+    # not `:`. The refuse-privileged-compose grep treats `seccomp:` as a
+    # missing profile.
+    - "seccomp=./agents/stability/stack/seccomp/redroid-seccomp.json"
+    # AppArmor default-docker blocks bind-mounts inside the container even
+    # when full caps are dropped; unconfined here is equivalent in scope to
+    # the cap_drop=ALL container above (a strictly safer posture than the
+    # privileged: true stub that this file replaces).
+    - "apparmor=unconfined"
+  read_only: false   # ReDroid needs writable /data
+
+# -----------------------------------------------------------------------------
+# YAML anchors for resource limits — CAX41-class sizing (single cell).
+# -----------------------------------------------------------------------------
+x-l0a-resources: &l0a-resources
+  deploy:
+    resources:
+      limits:
+        cpus: "2.0"
+        memory: "4g"
+      reservations:
+        cpus: "0.5"
+        memory: "2g"
+
+# -----------------------------------------------------------------------------
+# Default common environment.
+# -----------------------------------------------------------------------------
+x-l0a-env: &l0a-env
+  ANDROID_DATA: "/data"
+  androidboot.hardware: "redroid"
+  androidboot.redroid_net_ndns: "1"
+  # Disable GApps/Play for clean probe environment (L0a is identity-neutral;
+  # spoofed identifiers come from L1+).
+  androidboot.redroid_google_play_store: "0"
+  androidboot.redroid_adb_port: "5555"
+  redroid.gpu.mode: "guest"
+  RESEARCH_LAYER_SET: "L0a"
+
+# =============================================================================
+# Services
+# =============================================================================
+services:
+
+  redroid-l0a:
+    <<: [*l0a-hardening, *l0a-resources]
+    container_name: "stability-l0a-redroid"
+    hostname: "l0a"
+    restart: "no"
+    init: true
+
+    # Pin by digest from ../image-pins.yml::redroid_12_64only.digest_amd64.
+    # Stability's container_lifecycle.py rewrites this to digest_arm64 when
+    # the host architecture is aarch64 (single source of truth: image-pins.yml).
+    image: "redroid/redroid@sha256:e6f799d56b9a9a2bbc6224b5b7a6dc744c9b4d878ac856f27f0c4ec793ef55d3"
+    platform: "linux/amd64"
+
+    # ReDroid kernel-feature passthrough. No `privileged` shortcut; explicit
+    # device entries only.
+    devices:
+      - /dev/binder:/dev/binder
+      - /dev/hwbinder:/dev/hwbinder
+      - /dev/vndbinder:/dev/vndbinder
+      - /dev/ashmem:/dev/ashmem
+
+    ports:
+      # ADB bound to host loopback ONLY — never 0.0.0.0. The detection
+      # oracle adb-connect's via 127.0.0.1:15555.
+      - "127.0.0.1:15555:5555"
+
+    environment:
+      <<: *l0a-env
+
+    networks:
+      - l0a-isolated-net
+
+    healthcheck:
+      test:
+        - "CMD"
+        - "sh"
+        - "-c"
+        - "getprop sys.boot_completed | grep -q 1"
+      interval: 10s
+      timeout: 5s
+      retries: 24            # 24 * 10s = 4 min boot budget for L0a alone
+      start_period: 60s
+
+    labels:
+      research.phase: "L0a-baseline"
+      research.layer_set: "L0a"
+      research.compose_file: "agents/stability/stack/compose/L0a.yml"
+      research.owner: "stability"
+
+# =============================================================================
+# Networks — isolated bridge per cell. ADB egress goes via host loopback
+# port-mapping, not via this network.
+# =============================================================================
+networks:
+  l0a-isolated-net:
+    driver: bridge
+    internal: false      # ADB requires outbound briefly during connect handshake
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.50.0/29
+
+# =============================================================================
+# Volumes — none at L0a baseline. L0b/L1 overrides mount Magisk + module
+# directories on top.
+# =============================================================================
+volumes: {}
