@@ -40,6 +40,13 @@ interface ProbeContext {
      */
     fun queryMediaProjectionManager(): MediaProjectionManagerView =
         UnknownMediaProjectionManagerView
+
+    /**
+     * Default returns the "unknown" view so existing fakes that predate this
+     * method continue to compile. Production impls override with a wrapper
+     * around `android.os.UserHandle.myUserId()`.
+     */
+    fun queryUserHandle(): UserHandleView = UnknownUserHandleView
 }
 
 /** Conservative default: claims sdkInt=0 and answers `null` for every probe. */
@@ -237,4 +244,27 @@ object UnknownMediaProjectionManagerView : MediaProjectionManagerView {
     override fun sdkInt(): Int = 0
     override fun isScreenCaptureCallbackActive(): Boolean? = null
     override fun isMediaProjectionFrameCaptureActive(): Boolean? = null
+}
+
+/**
+ * Read-only view of android.os.UserHandle for multi-instance / clone-app detection.
+ *
+ * `UserHandle.myUserId()` returns 0 for the primary (owner) user and a non-zero
+ * integer for any secondary profile (work profile, clone space, guest user).
+ * Running in a secondary profile is a strong signal that multi-instance / clone-app
+ * isolation is in effect.
+ */
+interface UserHandleView {
+    /**
+     * `UserHandle.myUserId()`. Returns:
+     *   0     — primary (owner) user; normal single-instance execution
+     *   > 0   — secondary user / managed profile / clone space
+     *   null  — could not be determined (reflection failed, or API unavailable)
+     */
+    fun myUserId(): Int?
+}
+
+/** Conservative default: cannot determine the user ID. */
+object UnknownUserHandleView : UserHandleView {
+    override fun myUserId(): Int? = null
 }
